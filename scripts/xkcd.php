@@ -5,7 +5,7 @@ require('include/slack.config.php');
 
 $command = BuildSlashCommand($_REQUEST);
 
-$hook = $config['slack']['hook']
+$hook = $config['slack']['hook'];
 
 //use one or the other of $emoji or $iconurl
 $emoji = null;
