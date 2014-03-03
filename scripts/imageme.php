@@ -13,7 +13,7 @@ $iconurl = null;
 
 $enc = urlencode($command->Text);
 
-$imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/search/images?v=1.0&safe=active&rsz=8&imgsz=small&q='.$enc);
+$imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/search/images?v=1.0&safe=active&rsz=8&imgsz=medium&q='.$enc);
 
 $imageresponse = json_decode($imageSearchJson);
 
