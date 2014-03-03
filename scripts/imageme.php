@@ -17,15 +17,24 @@ $imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/se
 
 $imageresponse = json_decode($imageSearchJson);
 
-$whichImage = rand(0,7);
 
-$returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
+
+
 
 $userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
 
-if($returnedimageurl==''){
-	print_r("Sorry @{$userlink}, no image results for that search.");die;
+if($imageresponse->responseData == null){
+	//{"responseData": null, "responseDetails": "qps rate exceeded", "responseStatus": 503}
+	$details = $imageresponse->responseDetails;
+	$status = $imageresponse->responseStatus;
+	
+	print_r("Sorry @{$userlink}, no image for you! [{$details}:{$status}]\n");
+	print_r($imageresponse);
+	die;
 }
+
+$whichImage = rand(0,7);
+$returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
 
 $payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 
