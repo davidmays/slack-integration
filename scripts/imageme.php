@@ -19,11 +19,17 @@ $imageresponse = json_decode($imageSearchJson);
 
 $whichImage = rand(0,7);
 
-$returnedimageurl = $imageresponse->responseData->results[$whichImage]->unescapedUrl;
+$returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
 
-$payload = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}> asked for '{$command->Text}'\n{$returnedimageurl}";
+$userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
+
+if($returnedimageurl==''){
+	print_r("Sorry @{$userlink}, no image results for that search.");die;
+}
+
+$payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 
 $ret = slack_incoming_hook_post($hook, "imagebot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
-	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook.\n{$ret}");
+	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /imageme.\n{$ret}");
 ?>
