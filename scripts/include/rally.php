@@ -18,7 +18,7 @@ function HandleItem($slackCommand, $rallyFormattedId)
 		die;
 		break;
 	default:
-		print_r("Sorry I don't know what {$rallyFormattedId} represents. If you need to work with these, buy @tdm a :beer:. I hear he likes IPAs.");die;
+		print_r("Sorry I don't know what {$rallyFormattedId} represents. If you need to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");die;
 		break;
 	}
 }
@@ -35,7 +35,7 @@ function HandleDefect($id, $channel_name)
 		print_r($result."\n");
 		print_r(json_encode($payload));
 		print_r("\n");
-		die("Apparently @tdm didn't handle something right in the rallyme script. :frowning:");
+		die("Apparently <https://cim.slack.com/team/tdm|@tdm> didn't handle something right in the rallyme script. :frowning:");
 	}
 	return $result;
 }
@@ -152,7 +152,9 @@ function GetDefectPayload($ref)
 		array_push($fields,$firstattachment);
 
 	global $slackCommand;
-	$user_message = "Ok, @{$slackCommand->UserName}, here's the defect you requested.";
+	
+	$userlink = BuildUserLink($slackCommand->UserName);
+	$user_message = "Ok, {$userlink}, here's the defect you requested.";
 
 	$obj = new stdClass;
 	$obj->text = "";
@@ -178,7 +180,8 @@ function GetRequirementPayload($ref)
 	{
 		$class = get_class($object);
 		global $slackCommand;
-		print_r("Sorry @{$slackCommand->UserName}, I can't handle a {$class} yet. I'll let @tdm know about it.");
+		$userlink = BuildUserLink($slackCommand->UserName);
+		print_r("Sorry {$userlink}, I can't handle a {$class} yet. I'll let @tdm know about it.");
 		die;
 	}
 
@@ -253,7 +256,8 @@ function GetRequirementPayload($ref)
 
 
 	global $slackCommand;
-	$user_message = "Ok @{$slackCommand->UserName}, here's the story you requested.";
+	$userlink = BuildUserLink($slackCommand->UserName);
+	$user_message = "Ok {$userlink}, here's the story you requested.";
 
 	$obj = new stdClass;
 	$obj->text = "";
@@ -311,6 +315,11 @@ function FindRequirement($id)
 	return GetFirstObjectFromSearchResult("HierarchicalRequirement", $searchresult);
 }
 
+function BuildUserLink($username)
+{
+    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+    return $userlink;ss
+}
 
 function GetArtifactQueryUri($id)
 {
@@ -344,7 +353,8 @@ function GetCount($searchresult)
 function NotFound($id)
 {
 	global $slackCommand;
-	print_r("Sorry @{$slackCommand->UserName}, I couldn't find {$id}");die;
+	$userlink = BuildUserLink($slackCommand->UserName);
+	print_r("Sorry {$userlink}, I couldn't find {$id}");die;
 }
 
 
@@ -356,7 +366,8 @@ function GetFirstObjectFromSearchResult($objectName, $result)
 			return $result->_ref;
 	}
 	global $slackCommand;
-	print_r("Sorry @{$slackCommand->UserName}, your search for '{$slackCommand->Text}' was ambiguous.:\n");
+	$userlink = BuildUserLink($slackCommand->UserName);
+	print_r("Sorry @{$userlink}, your search for '{$slackCommand->Text}' was ambiguous.:\n");
 	print_r("Here's what Rally told me:\n");
 	print_r($result);
 	die;
