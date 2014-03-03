@@ -1,4 +1,6 @@
 <?
+require('rally.secrets.php');
+
 $config['rally']['defectquery'] = "https://rally1.rallydev.com/slm/webservice/v2.0/defect?query=(FormattedID%20=%20[[ID]])";
 $config['rally']['artifactquery'] = "https://rally1.rallydev.com/slm/webservice/v2.0/artifact?query=(FormattedID%20=%20[[ID]])";
 
@@ -6,6 +8,4 @@ $config['rally']['boticon'] = "https://yt3.ggpht.com/-vkXOTHhRGck/AAAAAAAAAAI/AA
 
 $config['rally']['botname'] = "rallybot";
 
-$config['rally']['username'] = "REPLACE ME";
-$config['rally']['password'] = "REPLACE ME";
 ?>
