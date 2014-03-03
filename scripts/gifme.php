@@ -17,13 +17,24 @@ $imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/se
 
 $imageresponse = json_decode($imageSearchJson);
 
+$userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
+
+if($imageresponse->responseData == null){
+	//{"responseData": null, "responseDetails": "qps rate exceeded", "responseStatus": 503}
+	$details = $imageresponse->responseDetails;
+	$status = $imageresponse->responseStatus;
+
+	print_r("Sorry @{$userlink}, no gif for you! [{$details}:{$status}]\n");
+	//print_r($imageresponse);
+	die;
+}
+
 $whichImage = rand(0,7);
+$returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
 
-$returnedimageurl = $imageresponse->responseData->results[$whichImage]->unescapedUrl;
-
-$payload = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}> asked for '{$command->Text}'\n{$returnedimageurl}";
+$payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 
 $ret = slack_incoming_hook_post($hook, "gifbot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
-	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook.\n{$ret}");
+	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /gifme.\n{$ret}");
 ?>
