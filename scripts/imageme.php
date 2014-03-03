@@ -29,7 +29,7 @@ if($imageresponse->responseData == null){
 	$status = $imageresponse->responseStatus;
 	
 	print_r("Sorry @{$userlink}, no image for you! [{$details}:{$status}]\n");
-	print_r($imageresponse);
+	//print_r($imageresponse);
 	die;
 }
 
