@@ -21,7 +21,9 @@ $whichImage = rand(0,7);
 
 $returnedimageurl = $imageresponse->responseData->results[$whichImage]->unescapedUrl;
 
-$ret = slack_incoming_hook_post($hook, "imagebot", $command->ChannelName, $iconurl, $emoji, "@" .$command->UserName."\n".$returnedimageurl);
+$payload = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}> asked for '{$command->Text}'\n{$returnedimageurl}";
+
+$ret = slack_incoming_hook_post($hook, "imagebot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook.\n{$ret}");
 ?>
