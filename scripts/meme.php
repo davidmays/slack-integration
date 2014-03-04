@@ -21,10 +21,10 @@ $cmd = BuildSlashCommand($_REQUEST);
 $fh = fopen('received.txt',"ra+");
 
 $payload = json_encode($cmd);
-fwrite("____________________\n");
-fwrite(new Date()."\n");
-fwrite($payload);
-fwrite("\n____________________\n");
+fwrite($fh,"____________________\n");
+fwrite($fh,new Date()."\n");
+fwrite($fh,$payload);
+fwrite($fh,"\n____________________\n");
 
 
 fclose($fh);
