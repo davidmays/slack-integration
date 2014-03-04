@@ -1,5 +1,5 @@
 <?
-function log($logfile, $payload)
+function mylog($logfile, $payload)
 {
     $fh = fopen($logfile,"ra+");
     fwrite($fh,time()."\n");
