@@ -44,7 +44,7 @@ $bottom = $parts[2];
 $meme = CreateNewMeme($gen, $top, $bottom);
 
 $out = new stdClass();
-$out->Text = $meme;
+$out->text = $meme;
 
 $json = json_encode($out);
 mylog('sent.txt',$json);
