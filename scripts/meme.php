@@ -23,7 +23,7 @@ die;
 print_r($cmd->Text);die;
 
 $cmdText = $cmd->Text;
-$memetext = str_replace("memebot:", "", $cmdText, 1);
+$memetext = str_replace("memebot:", "", $cmdText);
 
 $parts = explode("/", $memetext);
 
