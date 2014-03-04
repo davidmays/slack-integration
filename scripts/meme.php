@@ -20,7 +20,7 @@ $cmd = BuildSlashCommand($_REQUEST);
 print_r($cmd->Text);die;
 
 $cmdText = $cmd->Text;
-$memetext =  str_replace("memebot:", "", $cmd->Text, 1);
+$memetext =  str_replace("memebot:", "", $cmdText, 1);
 
 $parts = explode("/", $memetext);
 
