@@ -22,31 +22,32 @@ $payload = json_encode($cmd);
 
 mylog('received.txt',$payload);
 
-
-
-//$response = slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
-
-//mylog('sent.txt',$response);
-
-//str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
-
-//print_r($cmd->Text);die;
-
 $cmdText = $cmd->Text;
 $memetext = str_replace("memebot ", "", $cmdText);
 
 $parts = explode("/", $memetext);
 
 $gen = $parts[0];
-$top = $parts[1];
-$bottom = $parts[2];
+$top = urlencode($parts[1]);
+$bottom = urlencode($parts[2]);
 
 $meme = CreateNewMeme($gen, $top, $bottom);
+mylog('sent.txt',$meme);
 
-$out = new stdClass();
-$out->text = $meme;
+$response = slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelName, null, ":bow:", $meme);
 
-$json = json_encode($out);
-mylog('sent.txt',$json);
-print_r($json);
+mylog('sent.txt',$response);
+
+//str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
+
+//print_r($cmd->Text);die;
+
+
+
+//$out = new stdClass();
+//$out->text = $meme;
+
+//$json = json_encode($out);
+//mylog('sent.txt',$json);
+//print_r($json);
 ?>
