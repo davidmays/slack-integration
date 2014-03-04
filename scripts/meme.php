@@ -33,7 +33,7 @@ mylog('received.txt',$payload);
 //print_r($cmd->Text);die;
 
 $cmdText = $cmd->Text;
-$memetext = str_replace("memebot:", "", $cmdText);
+$memetext = str_replace("memebot ", "", $cmdText);
 
 $parts = explode("/", $memetext);
 
