@@ -29,7 +29,7 @@ fwrite($fh,"\n____________________\n");
 
 fclose($fh);
 
-slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
+slack_incoming_hook_post($config['slack']['incominghook'].$cmd->Token, $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
 die;
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
 
