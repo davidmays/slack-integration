@@ -16,6 +16,10 @@ text=googlebot: What is the air-speed velocity of an unladen swallow?
 $cmd = BuildSlashCommand($_REQUEST);
 
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
+
+print_r($cmd->Text);die;
+
+$cmdText = $cmd->Text;
 $memetext =  str_replace("memebot:", "", $cmd->Text, 1);
 
 $parts = explode("/", $memetext);
