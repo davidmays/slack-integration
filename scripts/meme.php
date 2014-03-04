@@ -2,6 +2,7 @@
 require('include/memegenerator.php');
 require('include/slack.php');
 require('include/curl.php');
+require('include/log.php');
 
 /*
 token=K2gDHdWZvZSmwOkW9O6yVbA7
@@ -18,18 +19,15 @@ text=googlebot: What is the air-speed velocity of an unladen swallow?
 $cmd = BuildSlashCommand($_REQUEST);
 
 
-$fh = fopen('received.txt',"ra+");
-
 $payload = json_encode($cmd);
-fwrite($fh,"____________________\n");
-fwrite($fh,time()."\n");
-fwrite($fh,$payload);
-fwrite($fh,"\n____________________\n");
+
+log('received.txt',$payload);
 
 
-fclose($fh);
 
-slack_incoming_hook_post($config['slack']['incominghook'].$cmd->Token, $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
+$response = slack_incoming_hook_post($config['slack']['incominghook'].$cmd->Token, $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
+
+log('sent.txt',$response);
 die;
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
 
