@@ -21,13 +21,13 @@ $cmd = BuildSlashCommand($_REQUEST);
 
 $payload = json_encode($cmd);
 
-log('received.txt',$payload);
+mylog('received.txt',$payload);
 
 
 
 $response = slack_incoming_hook_post($config['slack']['incominghook'].$cmd->Token, $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
 
-log('sent.txt',$response);
+mylog('sent.txt',$response);
 die;
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
 
