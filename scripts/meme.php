@@ -22,7 +22,7 @@ $fh = fopen('received.txt',"ra+");
 
 $payload = json_encode($cmd);
 fwrite($fh,"____________________\n");
-fwrite($fh,new Date()."\n");
+fwrite($fh,time()."\n");
 fwrite($fh,$payload);
 fwrite($fh,"\n____________________\n");
 
