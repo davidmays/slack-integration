@@ -18,6 +18,17 @@ text=googlebot: What is the air-speed velocity of an unladen swallow?
 $cmd = BuildSlashCommand($_REQUEST);
 
 
+$fh = fopen('received.txt',"ra+");
+
+$payload = json_encode($cmd);
+fwrite("____________________\n");
+fwrite(new Date()."\n");
+fwrite($payload);
+fwrite("\n____________________\n");
+
+
+fclose($fh);
+
 slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
 die;
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
