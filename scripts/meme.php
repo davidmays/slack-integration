@@ -2,7 +2,6 @@
 require('include/memegenerator.php');
 require('include/slack.php');
 require('include/curl.php');
-require('include/log.php');
 
 /*
 token=K2gDHdWZvZSmwOkW9O6yVbA7
@@ -25,13 +24,13 @@ mylog('received.txt',$payload);
 
 
 
-$response = slack_incoming_hook_post($config['slack']['incominghook'].$cmd->Token, $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
+//$response = slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelNAme, null, ":bow:", $cmd->Text);
 
-mylog('sent.txt',$response);
-die;
+//mylog('sent.txt',$response);
+
 //str_replace ( mixed $search , mixed $replace , mixed $subject [, int &$count ] )
 
-print_r($cmd->Text);die;
+//print_r($cmd->Text);die;
 
 $cmdText = $cmd->Text;
 $memetext = str_replace("memebot:", "", $cmdText);
@@ -42,6 +41,12 @@ $gen = $parts[0];
 $top = $parts[1];
 $bottom = $parts[2];
 
-return CreateNewMeme($gen, $top, $bottom);
+$meme = CreateNewMeme($gen, $top, $bottom);
 
+$out = new stdClass();
+$out->Text = $meme;
+
+$json = json_encode($out);
+mylog('sent.txt',$json);
+print_r($json);
 ?>
