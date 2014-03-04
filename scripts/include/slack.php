@@ -1,6 +1,6 @@
 <?
 //slack methods
-
+require_once('log.php');
 
 /*
 Slash Command Incoming Variables
