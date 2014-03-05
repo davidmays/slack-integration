@@ -28,7 +28,7 @@ if($imageresponse->responseData == null){
 	if($status == 503 && $tries < $maxtries)
 	{
 	    sleep(1);
-	    goto startover; //yeah, it's a goto. deal with it.
+	    goto startover; //yeah, it's a goto. deal with it. http://xkcd.com/292/
 	}
 	
 	print_r("Sorry @{$userlink}, no image for you! [{$details}:{$status}]\n");
