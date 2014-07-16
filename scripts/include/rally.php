@@ -18,7 +18,8 @@ function HandleItem($slackCommand, $rallyFormattedId)
 		die;
 		break;
 	default:
-		print_r("Sorry I don't know what {$rallyFormattedId} represents. If you need to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");die;
+		print_r("Sorry, I don't know what kind of rally object {$rallyFormattedId} is. If you need rallyme to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");
+		die;
 		break;
 	}
 }
@@ -31,11 +32,15 @@ function HandleDefect($id, $channel_name)
 
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 
+	if($result=='Invalid channel specified'){
+		die("Sorry, the rallyme command can't post messages to your private chat.\n")
+	}
+
 	if($result!="ok"){
 		print_r($result."\n");
 		print_r(json_encode($payload));
 		print_r("\n");
-		die("Apparently <https://cim.slack.com/team/tdm|@tdm> didn't handle something right in the rallyme script. :frowning:");
+		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
 	}
 	return $result;
 }
@@ -47,7 +52,19 @@ function HandleStory($id, $channel_name)
 
 	$payload = GetRequirementPayload($ref);
 
-	return postit($channel_name, $payload->text, $payload->attachments);
+	$result = postit($channel_name, $payload->text, $payload->attachments);
+	
+	if($result=='Invalid channel specified'){
+	    die("Sorry, the rallyme command can't post messages to your private chat.\n")
+	}
+	
+	if($result!="ok"){
+		print_r($result."\n");
+		print_r(json_encode($payload));
+		print_r("\n");
+		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
+	}
+	return $result;
 }
 
 function postit($channel_name, $payload, $attachments){
