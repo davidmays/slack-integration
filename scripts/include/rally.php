@@ -33,7 +33,7 @@ function HandleDefect($id, $channel_name)
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 
 	if($result=='Invalid channel specified'){
-		die("Sorry, the rallyme command can't post messages to your private chat.\n")
+		die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
 
 	if($result!="ok"){
@@ -55,7 +55,7 @@ function HandleStory($id, $channel_name)
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 	
 	if($result=='Invalid channel specified'){
-	    die("Sorry, the rallyme command can't post messages to your private chat.\n")
+	    die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
 	
 	if($result!="ok"){
