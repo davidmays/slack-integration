@@ -1,7 +1,7 @@
 <?
 require('include/curl.php');
 require('include/slack.php');
-require('include/slack.config.php');
+require('config/config.php');
 
 $command = BuildSlashCommand($_REQUEST);
 
