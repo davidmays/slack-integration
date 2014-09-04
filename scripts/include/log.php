@@ -1,4 +1,5 @@
 <?php
+
 function mylog($logfile, $payload)
 {
 	$fh = fopen($logfile,"ra+");

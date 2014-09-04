@@ -29,8 +29,8 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
-
-function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
+function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload)
+{
 
 	$data = array(
 		"text" => $payload,
@@ -53,9 +53,8 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 	return curl_post($uri, $data_string);
 }
 
-
-
-function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
+function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments)
+{
 
 	$data = array(
 		"text" => $payload,
@@ -69,12 +68,9 @@ function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon,
 	return curl_post($uri, $data_string);
 }
 
-
-
 /*
 slack attachment format
 
-{
 	"fallback": "Required text summary of the attachment that is shown by clients that understand attachments but choose not to show them.",
 
 	"text": "Optional text that should appear within the attachment",
@@ -90,9 +86,9 @@ slack attachment format
 			"short": false // Optional flag indicating whether the `value` is short enough to be displayed side-by-side with other values
 		}
 	]
-}
 */
-function MakeAttachment($pretext, $text, $color, $fields, $fallback){
+function MakeAttachment($pretext, $text, $color, $fields, $fallback)
+{
 
 	$obj = new stdClass;
 	$obj->fallback = $fallback;

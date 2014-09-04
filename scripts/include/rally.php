@@ -1,7 +1,6 @@
 <?php
 //rally commands
 
-
 function HandleItem($slackCommand, $rallyFormattedId)
 {
 	$rallyItemType = substr($rallyFormattedId,0,2);
@@ -45,7 +44,6 @@ function HandleDefect($id, $channel_name)
 	return $result;
 }
 
-
 function HandleStory($id, $channel_name)
 {
 	$ref = FindRequirement($id);
@@ -67,7 +65,8 @@ function HandleStory($id, $channel_name)
 	return $result;
 }
 
-function postit($channel_name, $payload, $attachments){
+function postit($channel_name, $payload, $attachments)
+{
 	global $config, $slackCommand;
 
 	return slack_incoming_hook_post_with_attachments(
@@ -78,8 +77,6 @@ function postit($channel_name, $payload, $attachments){
 		$payload,
 		$attachments);
 }
-
-
 
 function GetRallyAttachmentLink($attachmentRef)
 {
@@ -206,7 +203,6 @@ function GetRequirementPayload($ref)
 
 	$title = $requirement->_refObjectName;
 
-
 	$ProjectFull = CallAPI($projecturi);
 	$projectid = $ProjectFull->Project->ObjectID;
 	$storyid = $requirement->ObjectID;
@@ -245,8 +241,6 @@ function GetRequirementPayload($ref)
 
 	$dovegray = "#CEC7B8";
 
-
-
 	$fields = array(
 		MakeField("link",$linktext,false),
 		MakeField("parent",$parent,false),
@@ -271,7 +265,6 @@ function GetRequirementPayload($ref)
 		if($firstattachment!=null)
 			array_push($fields,$firstattachment);
 
-
 	global $slackCommand;
 	$userlink = BuildUserLink($slackCommand->UserName);
 	$user_message = "Ok {$userlink}, here's the story you requested.";
@@ -283,7 +276,6 @@ function GetRequirementPayload($ref)
 
 	return $obj;
 }
-
 
 function MakeField($title, $value, $short=false)
 {
@@ -309,7 +301,6 @@ function CallAPI($uri)
 
 	return $object;
 }
-
 
 function GetProjectID($projectref)
 {
@@ -373,7 +364,6 @@ function NotFound($id)
 	$userlink = BuildUserLink($slackCommand->UserName);
 	print_r("Sorry {$userlink}, I couldn't find {$id}");die;
 }
-
 
 function GetFirstObjectFromSearchResult($objectName, $result)
 {

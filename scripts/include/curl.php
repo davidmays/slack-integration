@@ -1,7 +1,8 @@
 <?php
 //HTTP Utility Methods
 
-function get_url_contents($url) {
+function get_url_contents($url)
+{
 	$crl = curl_init($url);
 
 	curl_setopt($crl, CURLOPT_USERAGENT, 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)');
@@ -13,7 +14,8 @@ function get_url_contents($url) {
 	return $response;
 }
 
-function get_url_contents_with_basicauth($url, $username, $password) {
+function get_url_contents_with_basicauth($url, $username, $password)
+{
 	$crl = curl_init();
 
 	curl_setopt($crl, CURLOPT_USERAGENT, 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; .NET CLR 1.1.4322)');

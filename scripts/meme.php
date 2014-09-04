@@ -17,7 +17,6 @@ text=googlebot: What is the air-speed velocity of an unladen swallow?
 //meme generator API
 $cmd = BuildSlashCommand($_REQUEST);
 
-
 $payload = json_encode($cmd);
 
 mylog('received.txt',$payload);

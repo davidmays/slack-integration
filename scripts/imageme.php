@@ -14,7 +14,6 @@ $userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserNam
 $maxtries = 2;
 $tries = 0;
 
-
 startover:
 
 $imageresponse = RunImageSearch($command->Text);
@@ -44,8 +43,6 @@ $payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 $ret = slack_incoming_hook_post($hook, "imagebot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /imageme.\n{$ret}");
-
-
 
 function RunImageSearch($text)
 {

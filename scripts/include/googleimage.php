@@ -4,7 +4,6 @@ built based on the docs here:
 https://developers.google.com/image-search/v1/jsondevguide
 */
 
-
 function BuildSearchCommand($query, $size, $maxresults, $safe, $filetype)
 {
 
