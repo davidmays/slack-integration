@@ -35,7 +35,9 @@ function curl_post($uri, $data)
 	curl_setopt($crl, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_setopt($crl, CURLOPT_POSTFIELDS, $data);
 	curl_setopt($crl, CURLOPT_RETURNTRANSFER, true);
-	curl_setopt($crl, CURLOPT_HTTPHEADER, array('Content-Length: ' . strlen($data)));
+	curl_setopt($crl, CURLOPT_HTTPHEADER, array(
+		'Content-Length: ' . strlen($data)
+	));
 
 	$response = curl_exec($crl);
 	curl_close($crl);

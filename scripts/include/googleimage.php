@@ -31,6 +31,6 @@ function GetRandomResultFromResponse($n, $result)
 {
 	$resultArray = $result->responseData->results;
 	$count = count($resultArray);
-	$item = rand(0,$count-1);
+	$item = rand(0, $count - 1);
 	return $resultArray[$item];
 }

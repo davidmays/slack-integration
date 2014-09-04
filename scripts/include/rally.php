@@ -3,23 +3,23 @@
 
 function HandleItem($slackCommand, $rallyFormattedId)
 {
-	$rallyItemType = substr($rallyFormattedId,0,2);
+	$rallyItemType = substr($rallyFormattedId, 0, 2);
 
-	switch($rallyItemType){
+	switch ($rallyItemType) {
 
-	case "DE":
-		return HandleDefect($rallyFormattedId, $slackCommand->ChannelName);
-		die;
-		break;
-	case "US":
-	case "TA":
-		return HandleStory($rallyFormattedId, $slackCommand->ChannelName);
-		die;
-		break;
-	default:
-		print_r("Sorry, I don't know what kind of rally object {$rallyFormattedId} is. If you need rallyme to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");
-		die;
-		break;
+		case "DE":
+			return HandleDefect($rallyFormattedId, $slackCommand->ChannelName);
+			die;
+			break;
+		case "US":
+		case "TA":
+			return HandleStory($rallyFormattedId, $slackCommand->ChannelName);
+			die;
+			break;
+		default:
+			print_r("Sorry, I don't know what kind of rally object {$rallyFormattedId} is. If you need rallyme to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");
+			die;
+			break;
 	}
 }
 
@@ -31,12 +31,12 @@ function HandleDefect($id, $channel_name)
 
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 
-	if($result=='Invalid channel specified'){
+	if ($result == 'Invalid channel specified') {
 		die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
 
-	if($result!="ok"){
-		print_r($result."\n");
+	if ($result != "ok") {
+		print_r($result . "\n");
 		print_r(json_encode($payload));
 		print_r("\n");
 		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
@@ -52,12 +52,12 @@ function HandleStory($id, $channel_name)
 
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 
-	if($result=='Invalid channel specified'){
+	if ($result == 'Invalid channel specified') {
 		die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
 
-	if($result!="ok"){
-		print_r($result."\n");
+	if ($result != "ok") {
+		print_r($result . "\n");
 		print_r(json_encode($payload));
 		print_r("\n");
 		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
@@ -69,13 +69,7 @@ function postit($channel_name, $payload, $attachments)
 {
 	global $config, $slackCommand;
 
-	return slack_incoming_hook_post_with_attachments(
-		$config['slack']['hook'],
-		$config['rally']['botname'],
-		$slackCommand->ChannelName,
-		$config['rally']['boticon'],
-		$payload,
-		$attachments);
+	return slack_incoming_hook_post_with_attachments($config['slack']['hook'], $config['rally']['botname'], $slackCommand->ChannelName, $config['rally']['boticon'], $payload, $attachments);
 }
 
 function GetRallyAttachmentLink($attachmentRef)
@@ -94,7 +88,7 @@ function GetRallyAttachmentLink($attachmentRef)
 
 function GetDefectPayload($ref)
 {
-	global $show,$requesting_user_name;
+	global $show, $requesting_user_name;
 
 	$object = CallAPI($ref);
 
@@ -125,10 +119,9 @@ function GetDefectPayload($ref)
 	$attachmentcount = $defect->Attachments->Count;
 
 	$firstattachment = null;
-	if($attachmentcount>0)
-	{
+	if ($attachmentcount > 0) {
 		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
-		$firstattachment = MakeField("attachment",$linktxt,false);
+		$firstattachment = MakeField("attachment", $linktxt, false);
 	}
 
 	$defecturi = "https://rally1.rallydev.com/#/{$projectid}d/detail/defect/{$defectid}";
@@ -138,32 +131,32 @@ function GetDefectPayload($ref)
 
 	$color = "bad";
 
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401|ENT_COMPAT, 'UTF-8');
+	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
 	$short_description = TruncateText($clean_description, 300);
 
 	$fields = array(
-		MakeField("link",$linktext,false),
+		MakeField("link", $linktext, false),
 
-		MakeField("id",$itemid,true),
-		MakeField("owner",$owner,true),
+		MakeField("id", $itemid, true),
+		MakeField("owner", $owner, true),
 
-		MakeField("project",$projectName,true),
-		MakeField("created",$created,true),
+		MakeField("project", $projectName, true),
+		MakeField("created", $created, true),
 
-		MakeField("submitter",$submitter,true),
-		MakeField("state",$state,true),
+		MakeField("submitter", $submitter, true),
+		MakeField("state", $state, true),
 
-		MakeField("priority",$priority,true),
-		MakeField("severity",$severity,true),
+		MakeField("priority", $priority, true),
+		MakeField("severity", $severity, true),
 
-		MakeField("frequency",$frequency,true),
-		MakeField("found in",$foundinbuild,true),
+		MakeField("frequency", $frequency, true),
+		MakeField("found in", $foundinbuild, true),
 
-		MakeField("description",$short_description,false)
+		MakeField("description", $short_description, false)
 	);
 
-	if($firstattachment!=null)
-		array_push($fields,$firstattachment);
+	if ($firstattachment != null)
+		array_push($fields, $firstattachment);
 
 	global $slackCommand;
 
@@ -182,16 +175,11 @@ function GetRequirementPayload($ref)
 
 	$requirement = null;
 
-	if($object->HierarchicalRequirement)
-	{
+	if ($object->HierarchicalRequirement) {
 		$requirement = $object->HierarchicalRequirement;
-	}
-	elseif($object->Task)
-	{
+	} elseif ($object->Task) {
 		$requirement = $object->Task;
-	}
-	else
-	{
+	} else {
 		$class = get_class($object);
 		global $slackCommand;
 		$userlink = BuildUserLink($slackCommand->UserName);
@@ -222,17 +210,16 @@ function GetRequirementPayload($ref)
 	$attachmentcount = $requirement->Attachments->Count;
 
 	$firstattachment = null;
-	if($attachmentcount>0)
-	{
+	if ($attachmentcount > 0) {
 		$linktxt = GetRallyAttachmentLink($requirement->Attachments->_ref);
-		$firstattachment = MakeField("attachment",$linktxt,false);
+		$firstattachment = MakeField("attachment", $linktxt, false);
 	}
 
 	$parent = null;
-	if($hasparent)
+	if ($hasparent)
 		$parent = $requirement->Parent->_refObjectName;
 
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401|ENT_COMPAT, 'UTF-8');
+	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
 	$short_description = TruncateText($clean_description, 300);
 
 	$storyuri = "https://rally1.rallydev.com/#/{$projectid}d/detail/userstory/{$storyid}";
@@ -242,28 +229,29 @@ function GetRequirementPayload($ref)
 	$dovegray = "#CEC7B8";
 
 	$fields = array(
-		MakeField("link",$linktext,false),
-		MakeField("parent",$parent,false),
+		MakeField("link", $linktext, false),
+		MakeField("parent", $parent, false),
 
-		MakeField("id",$itemid,true),
-		MakeField("owner",$owner,true),
+		MakeField("id", $itemid, true),
+		MakeField("owner", $owner, true),
 
-		MakeField("project",$projectName,true),
-		MakeField("created",$created,true),
+		MakeField("project", $projectName, true),
+		MakeField("created", $created, true),
 
-		MakeField("estimate",$estimate,true),
-		MakeField("state",$state,true));
+		MakeField("estimate", $estimate, true),
+		MakeField("state", $state, true)
+	);
 
-		if($childcount>0)
-			array_push($fields,MakeField("children",$childcount,true));
+	if ($childcount > 0)
+		array_push($fields, MakeField("children", $childcount, true));
 
-		if($blocked)
-			array_push($fields, MakeField("blocked",$blockedreason,true));
+	if ($blocked)
+		array_push($fields, MakeField("blocked", $blockedreason, true));
 
-		array_push($fields, MakeField("description",$short_description,false));
+	array_push($fields, MakeField("description", $short_description, false));
 
-		if($firstattachment!=null)
-			array_push($fields,$firstattachment);
+	if ($firstattachment != null)
+		array_push($fields, $firstattachment);
 
 	global $slackCommand;
 	$userlink = BuildUserLink($slackCommand->UserName);
@@ -272,17 +260,18 @@ function GetRequirementPayload($ref)
 	$obj = new stdClass;
 	$obj->text = "";
 	$obj->attachments = MakeAttachment($user_message, "", $dovegray, $fields, $storyuri);
-//	print_r(json_encode($obj));die;
+	//	print_r(json_encode($obj));die;
 
 	return $obj;
 }
 
-function MakeField($title, $value, $short=false)
+function MakeField($title, $value, $short = false)
 {
 	$attachmentfield = array(
 		"title" => $title,
 		"value" => $value,
-		"short" => $short);
+		"short" => $short
+	);
 
 	return $attachmentfield;
 }
@@ -314,10 +303,10 @@ function FindRequirement($id)
 	$query = GetArtifactQueryUri($id);
 
 	$searchresult = CallAPI($query);
-//	print_r($searchresult);die;
+	//	print_r($searchresult);die;
 
 	$count = GetCount($searchresult);
-	if($count == 0)
+	if ($count == 0)
 		NotFound($id);
 
 	return GetFirstObjectFromSearchResult("HierarchicalRequirement", $searchresult);
@@ -347,7 +336,7 @@ function FindDefect($id)
 	$searchresult = CallAPI($query);
 
 	$count = GetCount($searchresult);
-	if($count == 0)
+	if ($count == 0)
 		NotFound($id);
 
 	return GetFirstObjectFromSearchResult("Defect", $searchresult);
@@ -362,14 +351,14 @@ function NotFound($id)
 {
 	global $slackCommand;
 	$userlink = BuildUserLink($slackCommand->UserName);
-	print_r("Sorry {$userlink}, I couldn't find {$id}");die;
+	print_r("Sorry {$userlink}, I couldn't find {$id}");
+	die;
 }
 
 function GetFirstObjectFromSearchResult($objectName, $result)
 {
-	foreach ($result->QueryResult->Results as $result)
-	{
-		if($result->_type == $objectName)
+	foreach ($result->QueryResult->Results as $result) {
+		if ($result->_type == $objectName)
 			return $result->_ref;
 	}
 	global $slackCommand;
@@ -382,8 +371,8 @@ function GetFirstObjectFromSearchResult($objectName, $result)
 
 function TruncateText($text, $len)
 {
-	if(strlen($text) <= $len)
+	if (strlen($text) <= $len)
 		return $text;
 
-	return substr($text,0,$len)."...[MORE]";
+	return substr($text, 0, $len) . "...[MORE]";
 }
