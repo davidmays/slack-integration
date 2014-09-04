@@ -1,4 +1,4 @@
-<?
+<?php
 //HTTP Utility Methods
 
 function get_url_contents($url) {
@@ -39,4 +39,3 @@ function curl_post($uri, $data)
 	curl_close($crl);
 	return $response;
 }
-?>

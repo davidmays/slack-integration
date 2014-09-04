@@ -1,4 +1,4 @@
-<?
+<?php
 require('include/curl.php');
 require('include/slack.php');
 require('include/slack.config.php');
@@ -37,4 +37,3 @@ $payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 $ret = slack_incoming_hook_post($hook, "gifbot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /gifme.\n{$ret}");
-?>

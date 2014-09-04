@@ -1,4 +1,4 @@
-<?
+<?php
 require('include/memegenerator.php');
 require('include/slack.php');
 require('include/curl.php');
@@ -50,4 +50,3 @@ mylog('sent.txt',$response);
 //$json = json_encode($out);
 //mylog('sent.txt',$json);
 //print_r($json);
-?>
