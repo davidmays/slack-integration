@@ -4,12 +4,8 @@
  // Slack settings //
 ////////////////////
 
-$config['slack']['incominghooktoken'] = "REPLACE ME";
 $config['slack']['outgoinghooktoken'] = "REPLACE ME";
-
-$config['slack']['incominghook'] = "https://cim.slack.com/services/hooks/incoming-webhook?token=";
-
-$config['slack']['hook'] = $config['slack']['incominghook'].$config['slack']['incominghooktoken'];
+$config['slack']['hook'] = "REPLACE ME"; //URL of an Incoming WebHook including https:// and token value
 
   ////////////////////
  // Rally settings //
