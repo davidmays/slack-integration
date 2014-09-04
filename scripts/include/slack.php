@@ -1,4 +1,4 @@
-<?
+<?php
 //slack methods
 require_once('log.php');
 
@@ -29,47 +29,44 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
+function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload)
+{
 
-function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-	
 	$data = array(
-		"text" => $payload, 
-		"channel" => "#".$channel,
-		"username"=>$user
-		);
+		"text" => $payload,
+		"channel" => "#" . $channel,
+		"username" => $user
+	);
 
-	if($icon!=null)
-	{
+	if ($icon != null) {
 		$data['icon_url'] = $icon;
-	}
-	elseif($emoji!=null)
-	{
+	} elseif ($emoji != null) {
 		$data['icon_emoji'] = $emoji;
 	}
 
-	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
+	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
 
-	mylog('sent.txt',$data_string);
+	mylog('sent.txt', $data_string);
 	return curl_post($uri, $data_string);
 }
 
-
-
-function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
+function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments)
+{
 
 	$data = array(
-		"text" => $payload, 
-		"channel" => "#".$channel,
-		"username"=>$user,
-		"icon_url"=>$icon,
-		"attachments"=>array($attachments));
+		"text" => $payload,
+		"channel" => "#" . $channel,
+		"username" => $user,
+		"icon_url" => $icon,
+		"attachments" => array(
+			$attachments
+		)
+	);
 
-	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-	mylog('sent.txt',$data_string);
+	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
+	mylog('sent.txt', $data_string);
 	return curl_post($uri, $data_string);
 }
-
-
 
 /*
 slack attachment format
@@ -86,13 +83,16 @@ slack attachment format
 	"fields": [
 		{
 			"title": "Required Field Title", // The title may not contain markup and will be escaped for you
+
 			"value": "Text value of the field. May contain standard message markup and must be escaped as normal. May be multi-line.",
+
 			"short": false // Optional flag indicating whether the `value` is short enough to be displayed side-by-side with other values
 		}
 	]
 }
 */
-function MakeAttachment($pretext, $text, $color, $fields, $fallback){
+function MakeAttachment($pretext, $text, $color, $fields, $fallback)
+{
 
 	$obj = new stdClass;
 	$obj->fallback = $fallback;
@@ -100,9 +100,8 @@ function MakeAttachment($pretext, $text, $color, $fields, $fallback){
 	$obj->pretext = $pretext;
 	$obj->color = $color;
 
-	if(sizeof($fields)>0)
+	if (sizeof($fields) > 0)
 		$obj->fields = $fields;
 
 	return $obj;
 }
-?>

@@ -1,4 +1,4 @@
-<?
+<?php
 require('include/curl.php');
 require('include/slack.php');
 require('include/slack.config.php');
@@ -25,6 +25,5 @@ $image = $xkcdresponse->img;
 $payload = "{$image}\n<http://xkcd.com/{$comicid}/|{$alt}>\n";
 
 $ret = slack_incoming_hook_post($hook, "xkcdbot", $command->ChannelName, $iconurl, $emoji, $payload);
-if($ret!="ok")
+if ($ret != "ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook.\n{$ret}");
-?>
