@@ -55,7 +55,7 @@ function HandleStory($id, $channel_name)
 	$result = postit($channel_name, $payload->text, $payload->attachments);
 
 	if($result=='Invalid channel specified'){
-	    die("Sorry, the rallyme command can't post messages to your private chat.\n");
+		die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
 
 	if($result!="ok"){
@@ -159,8 +159,8 @@ function GetDefectPayload($ref)
 		MakeField("priority",$priority,true),
 		MakeField("severity",$severity,true),
 
-    	MakeField("frequency",$frequency,true),
-    	MakeField("found in",$foundinbuild,true),
+		MakeField("frequency",$frequency,true),
+		MakeField("found in",$foundinbuild,true),
 
 		MakeField("description",$short_description,false)
 	);
@@ -334,8 +334,8 @@ function FindRequirement($id)
 
 function BuildUserLink($username)
 {
-    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
-    return $userlink;
+	$userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+	return $userlink;
 }
 
 function GetArtifactQueryUri($id)

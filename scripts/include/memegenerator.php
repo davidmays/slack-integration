@@ -7,11 +7,11 @@ $generators['amitheonlyone'] = "Am+I+The+Only+One+Around+Here";
 
 function CreateNewMeme($gen, $top, $bottom)
 {
-    global $generators;
+	global $generators;
 
-    $meme = $generators[$gen];
+	$meme = $generators[$gen];
 
-    $API = "http://apimeme.com/meme?meme={$meme}&top={$top}&bottom={$bottom}";
+	$API = "http://apimeme.com/meme?meme={$meme}&top={$top}&bottom={$bottom}";
 
-    return $API;
+	return $API;
 }

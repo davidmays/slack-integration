@@ -27,8 +27,8 @@ if($imageresponse->responseData == null){
 
 	if($status == 503 && $tries < $maxtries)
 	{
-	    sleep(1);
-	    goto startover; //yeah, it's a goto. deal with it. http://xkcd.com/292/
+		sleep(1);
+		goto startover; //yeah, it's a goto. deal with it. http://xkcd.com/292/
 	}
 
 	print_r("Sorry @{$userlink}, no image for you! [{$details}:{$status}]\n");
@@ -51,9 +51,9 @@ function RunImageSearch($text)
 {
 	$enc = urlencode($text);
 
-    $imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/search/images?v=1.0&safe=active&rsz=8&imgsz=medium&q='.$enc);
+	$imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/search/images?v=1.0&safe=active&rsz=8&imgsz=medium&q='.$enc);
 
-    $imageresponse = json_decode($imageSearchJson);
+	$imageresponse = json_decode($imageSearchJson);
 
-    return $imageresponse;
+	return $imageresponse;
 }
