@@ -334,7 +334,8 @@ function FindRequirement($id)
 
 function BuildUserLink($username)
 {
-    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+	global $config;
+	$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $username . '|@' . $username . '>';
     return $userlink;
 }
 

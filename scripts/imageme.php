@@ -10,7 +10,7 @@ $hook = $config['slack']['hook'];
 //use one or the other of $emoji or $iconurl
 $emoji = ":camera:";
 $iconurl = null;
-$userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
+$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $command->UserName . '|' . $command->UserName . '>';
 $maxtries = 2;
 $tries = 0;
 
