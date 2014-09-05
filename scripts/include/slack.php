@@ -34,7 +34,7 @@ function BuildSlashCommand($request)
 
 function SanitizeText($text)
 {
-	$text = strtr($text, array('<br />' => '\n'));
+	$text = strtr($text, array('<br />' => '\n', '<div>' => '\n', '<p>' => '\n'));
 	return html_entity_decode(strip_tags($text), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
 }
 
@@ -83,9 +83,9 @@ function SendIncomingWebHookMessage($channel, $payload, $attachments)
 
 	$reply = slack_incoming_hook_post_with_attachments(
 		$config['slack']['hook'],
-		$config['slack']['botname'],
+		$config['rally']['botname'],
 		$channel,
-		$config['slack']['boticon'],
+		$config['rally']['boticon'],
 		$payload,
 		$attachments
 	);
@@ -107,6 +107,7 @@ function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon,
 		"attachments"=>array($attachments));
 
 	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
+	$data_string = strtr($data_string, array('\\\\n' => '\n')); //unescape slashes in newline characters
 	mylog('sent.txt',$data_string);
 	return curl_post($uri, $data_string);
 }

@@ -4,7 +4,6 @@ require('slack.config.php');
 require('slack.php');
 require('rallyme.config.php');
 require('rally.php');
-require('../config/rallycron.conf.php');
 
 function FetchLatestRallyComments($since)
 {
@@ -42,4 +41,31 @@ function FetchLatestRallyComments($since)
 	}
 
 	return $items;
+}
+
+function SendRallyCommentNotifications($items)
+{
+	global $SLACK_CHANNEL_FOR_RALLY_PROJECT;
+	$success = TRUE;
+
+	foreach ($items as $item) {
+		$item['title'] = SanitizeText($item['title']);
+		$item['title'] = TruncateText($item['title'], 300);
+		$slug = $item['type'] . ' ' . l($item['title'], $item['url']);
+
+		$item['text'] = SanitizeText($item['text']);
+		$item['text'] = TruncateText($item['text'], 300);
+
+		//display a preview of the comment as a message attachment
+		$pretext = em('New comment added to ' . $slug);
+		$text = '';
+		$color = '#CEC7B8'; //dove gray
+		$fields = array(MakeField($item['user'], $item['text']));
+		$fallback = $item['user'] . ' commented on ' . $slug;
+
+		$message = MakeAttachment($pretext, $text, $color, $fields, $fallback);
+		$success = SendIncomingWebHookMessage($SLACK_CHANNEL_FOR_RALLY_PROJECT, '', $message) && $success;
+	}
+
+	return $success;
 }
