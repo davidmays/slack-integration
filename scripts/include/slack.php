@@ -30,10 +30,31 @@ function BuildSlashCommand($request)
 }
 
 
+//text-formatting functions
+
+function SanitizeText($text)
+{
+	$text = strtr($text, array('<br />' => '\n'));
+	return html_entity_decode(strip_tags($text), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
+}
+
+function l($text, $url)
+{
+	return '<' . $url . '|' . $text . '>';
+}
+
+function em($text)
+{
+	return '_' . $text . '_';
+}
+
+
+//posting functions
+
 function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-	
+
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user
 		);
@@ -58,7 +79,7 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
 
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user,
 		"icon_url"=>$icon,
