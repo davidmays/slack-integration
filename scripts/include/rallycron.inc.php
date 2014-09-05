@@ -4,6 +4,7 @@ require('slack.config.php');
 require('slack.php');
 require('rallyme.config.php');
 require('rally.php');
+require('../config/rallycron.conf.php');
 
 function FetchLatestRallyComments($since)
 {
