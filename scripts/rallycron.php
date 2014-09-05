@@ -7,5 +7,5 @@ $CRON_INTERVAL = 61; //seconds between cron runs; pad for script run time and la
 
 $since = date($RALLY_TIMESTAMP_FORMAT, time() - $CRON_INTERVAL);
 
-$items = FetchLatestRallyItems($since);
-$result = SendRallyNotifications($items);
+$items = FetchLatestRallyComments($since);
+$result = SendRallyCommentNotifications($items);

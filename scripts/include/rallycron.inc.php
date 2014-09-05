@@ -5,7 +5,7 @@ require('slack.php');
 require('rallyme.config.php');
 require('rally.php');
 
-function FetchLatestRallyItems($since)
+function FetchLatestRallyComments($since)
 {
 	global $RALLY_URL, $RALLY_PROJECT_ID;
 
