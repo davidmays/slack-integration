@@ -1,5 +1,5 @@
 <?php
-require('config/rallycron.conf.php');
+require('config/config.php');
 require('include/rallycron.inc.php');
 
 date_default_timezone_set('UTC');
