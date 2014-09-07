@@ -11,7 +11,7 @@ function FetchUpdatedRallyArtifacts($since)
 
 	$api_url = $RALLY_URL . 'slm/webservice/v2.0/';
 	$query_url = $api_url . 'artifact?query=((Project.ObjectID+%3D+' . $RALLY_PROJECT_ID . ')AND(LastUpdateDate+>+' . $since . '))&fetch=CreationDate,FormattedID,LastUpdateDate,Owner,Ready,RevisionHistory,ScheduleState,SubmittedBy&order=LastUpdateDate+asc&pagesize=200';
-var_dump($query_url);
+
 	$results = CallAPI($query_url);
 	$results = $results->QueryResult->Results;
 
@@ -19,7 +19,7 @@ var_dump($query_url);
 
 	$items = array();
 	foreach ($results as $Result) {
-var_dump('processing ' . $Result->FormattedID . ' ' . $Result->_refObjectName);
+
 		$user = '';
 		switch ($type = $Result->_type) {
 			case 'Defect':
@@ -35,7 +35,6 @@ var_dump('processing ' . $Result->FormattedID . ' ' . $Result->_refObjectName);
 				$path = '/detail/testcase/';
 				break;
 			default:
-var_dump('-> skipping unimportant new artifact');
 				continue 2; //don't display other artifact types
 		}
 		if (empty($user) && isset($Result->Owner)) {
@@ -47,7 +46,6 @@ var_dump('-> skipping unimportant new artifact');
 		$creationDate = date_create_from_format($RALLY_TIMESTAMP_FORMAT, $Result->CreationDate)->getTimestamp();
 
 		if (($lastUpDate - $creationDate) < 2) { //assume items updated within 1 sec haven't changed state
-var_dump('-> reporting newly-created artifact');
 			$items[] = array( //report newly-created artifacts
 				'type' => $type,
 				'title' => $Result->_refObjectName,
@@ -75,7 +73,6 @@ var_dump('-> reporting newly-created artifact');
 					}
 					break;
 				default:
-var_dump('-> skipping unimportant status');
 					continue 2; //don't parse other state changes
 			}
 
@@ -86,7 +83,6 @@ var_dump('-> skipping unimportant status');
 			$is_verified = FALSE;
 			foreach ($statusResults->QueryResult->Results as $Revision) {
 				if (isset($fact_table[0]) && (strpos($Revision->Description, $fact_table[0]) !== FALSE)){
-var_dump('-> poisoning the well');
 					continue 2; //stop parsing if the negative fact has appeared
 				}
 				if (strpos($Revision->Description, $fact_table[1]) !== FALSE) {
@@ -95,10 +91,8 @@ var_dump('-> poisoning the well');
 				}
 			}
 			if (!$is_verified) {
-var_dump('-> skipping unconfirmed state change');
 				continue; //skip artifacts with unconfirmed state change
 			}
-var_dump('-> reporting artifact state change');
 			$items[] = array( //report stories that have changed state
 				'type' => $type,
 				'title' => $Result->_refObjectName,
