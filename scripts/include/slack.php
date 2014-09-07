@@ -29,6 +29,28 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
+
+//text-formatting functions
+
+function SanitizeText($text)
+{
+	$text = strtr($text, array('<br />' => '\n', '<div>' => '\n', '<p>' => '\n'));
+	return html_entity_decode(strip_tags($text), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
+}
+
+function l($text, $url)
+{
+	return '<' . $url . '|' . $text . '>';
+}
+
+function em($text)
+{
+	return '_' . $text . '_';
+}
+
+
+//posting functions
+
 function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload)
 {
 
@@ -50,6 +72,29 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 	return curl_post($uri, $data_string);
 }
 
+function SendIncomingWebHookMessage($channel, $payload, $attachments)
+{
+	global $config;
+
+	//allow bot to display formatted attachment text
+	$attachments->mrkdwn_in = ['pretext', 'text', 'title', 'fields'];
+
+	$reply = slack_incoming_hook_post_with_attachments(
+		$config['slack']['hook'],
+		$config['rally']['botname'],
+		$channel,
+		$config['rally']['boticon'],
+		$payload,
+		$attachments
+	);
+
+	$success = ($reply == 'ok');
+	if (!$success) {
+		trigger_error('Unable to send Incoming WebHook message: ' . $reply);
+	}
+	return $success;
+}
+
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments)
 {
 
@@ -64,7 +109,8 @@ function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon,
 	);
 
 	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
-	mylog('sent.txt', $data_string);
+	$data_string = strtr($data_string, array('\\\\n' => '\n')); //unescape slashes in newline characters
+	mylog('sent.txt',$data_string);
 	return curl_post($uri, $data_string);
 }
 
