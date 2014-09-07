@@ -29,7 +29,6 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
-
 //text-formatting functions
 
 function SanitizeText($text)
@@ -48,6 +47,10 @@ function em($text)
 	return '_' . $text . '_';
 }
 
+function b($text)
+{
+	return '*' . $text . '*';
+}
 
 //posting functions
 
