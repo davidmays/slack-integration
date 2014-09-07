@@ -1,0 +1,3 @@
+scripts/config/*
+!scripts/config/default.config.php
+

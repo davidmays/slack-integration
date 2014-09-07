@@ -1,7 +1,8 @@
 <?
 require('include/memegenerator.php');
-require('include/slack.php');
 require('include/curl.php');
+require('include/slack.php');
+require('config/config.php');
 
 /*
 token=K2gDHdWZvZSmwOkW9O6yVbA7

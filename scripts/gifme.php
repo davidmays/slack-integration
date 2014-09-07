@@ -1,7 +1,7 @@
 <?
 require('include/curl.php');
 require('include/slack.php');
-require('include/slack.config.php');
+require('config/config.php');
 
 $command = BuildSlashCommand($_REQUEST);
 
@@ -17,7 +17,7 @@ $imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/se
 
 $imageresponse = json_decode($imageSearchJson);
 
-$userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
+$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $command->UserName . '|' . $command->UserName . '>';
 
 if($imageresponse->responseData == null){
 	//{"responseData": null, "responseDetails": "qps rate exceeded", "responseStatus": 503}
