@@ -18,13 +18,13 @@ function FetchUpdatedRallyArtifacts($since)
 	$project_url = $RALLY_URL . '#/' . $RALLY_PROJECT_ID;
 
 	$items = array();
-	foreach ($results as $Result) {
+	foreach ($results as $Artifact) {
 
 		$user = '';
-		switch ($type = $Result->_type) {
+		switch ($type = $Artifact->_type) {
 			case 'Defect':
 				$path = '/detail/defect/';
-				$user = $Result->SubmittedBy->_refObjectName;
+				$user = $Artifact->SubmittedBy->_refObjectName;
 				break;
 			case 'HierarchicalRequirement':
 				$type = 'User Story';
@@ -37,31 +37,31 @@ function FetchUpdatedRallyArtifacts($since)
 			default:
 				continue 2; //don't display other artifact types
 		}
-		if (empty($user) && isset($Result->Owner)) {
-			$user = $Result->Owner->_refObjectName;
+		if (empty($user) && isset($Artifact->Owner)) {
+			$user = $Artifact->Owner->_refObjectName;
 		}
 
 		//was the artifact just created?
-		$lastUpDate = date_create_from_format($RALLY_TIMESTAMP_FORMAT, $Result->LastUpdateDate)->getTimestamp();
-		$creationDate = date_create_from_format($RALLY_TIMESTAMP_FORMAT, $Result->CreationDate)->getTimestamp();
+		$lastUpDate = date_create_from_format($RALLY_TIMESTAMP_FORMAT, $Artifact->LastUpdateDate)->getTimestamp();
+		$creationDate = date_create_from_format($RALLY_TIMESTAMP_FORMAT, $Artifact->CreationDate)->getTimestamp();
 
 		if (($lastUpDate - $creationDate) < 2) { //assume items updated within 1 sec haven't changed state
 			$items[] = array( //report newly-created artifacts
 				'type' => $type,
-				'title' => $Result->_refObjectName,
-				'url' => $project_url . $path . basename($Result->_ref),
+				'title' => $Artifact->_refObjectName,
+				'url' => $project_url . $path . basename($Artifact->_ref),
 				'user' => $user,
-				'id' => $Result->FormattedID
+				'id' => $Artifact->FormattedID
 			);
 
 		} elseif ($type == 'User Story') { //track progress of user stories
-			switch ($Result->ScheduleState) {
+			switch ($Artifact->ScheduleState) {
 				case 'Completed':
 					$fact_table = array(1 => 'SCHEDULE STATE changed');
 					$state = 'acceptance-ready';
 					break;
 				case 'In-Progress':
-					if ($Result->Ready) {
+					if ($Artifact->Ready) {
 						$fact_table = array(1 => 'READY changed from [false] to [true]');
 						$state = 'verification-ready';
 					} else {
@@ -77,11 +77,13 @@ function FetchUpdatedRallyArtifacts($since)
 			}
 
 			//parse latest revision messages to verify state change
-			$query2_url = $Result->RevisionHistory->_ref . '/Revisions?query=(CreationDate+>+' . $since . ')&fetch=CreationDate,Description,User';
-			$statusResults = CallAPI($query2_url);
+			$query2_url = $Artifact->RevisionHistory->_ref . '/Revisions?query=(CreationDate+>+' . $since . ')&fetch=CreationDate,Description,User';
+
+			$results2 = CallAPI($query2_url);
+			$results2 = $results2->QueryResult->Results;
 
 			$is_verified = FALSE;
-			foreach ($statusResults->QueryResult->Results as $Revision) {
+			foreach ($results2 as $Revision) {
 				if (isset($fact_table[0]) && (strpos($Revision->Description, $fact_table[0]) !== FALSE)){
 					continue 2; //stop parsing if the negative fact has appeared
 				}
@@ -93,12 +95,13 @@ function FetchUpdatedRallyArtifacts($since)
 			if (!$is_verified) {
 				continue; //skip artifacts with unconfirmed state change
 			}
+
 			$items[] = array( //report stories that have changed state
 				'type' => $type,
-				'title' => $Result->_refObjectName,
-				'url' => $project_url . $path . basename($Result->_ref),
+				'title' => $Artifact->_refObjectName,
+				'url' => $project_url . $path . basename($Artifact->_ref),
 				'user' => $user,
-				'id' => $Result->FormattedID,
+				'id' => $Artifact->FormattedID,
 				'state' => $state //presence of this key indicates state-change notification
 			);
 		}
@@ -108,5 +111,47 @@ function FetchUpdatedRallyArtifacts($since)
 
 function SendRallyUpdateNotifications($items)
 {
+	global $SLACK_CHANNEL_FOR_RALLY_PROJECT;
+	$success = TRUE;
 
+	foreach ($items as $item) {
+		$item['title'] = SanitizeText($item['title']);
+		$item['title'] = TruncateText($item['title'], 300);
+		$slug = l($item['title'], $item['url']);
+
+		//display a state-change notification as a message attachment
+		if (isset($item['state'])) {
+			switch ($item['state']) {
+				case 'verification-ready':
+					$item['state'] = ' is ready for QA';
+					$color = '#F29513'; //github orange
+					break;
+				case 'needs-work':
+					$item['state'] = ' needs additional work';
+					$color = '#D84A63'; //paletton-suggested red
+					break;
+				case 'acceptance-ready':
+					$item['state'] = ' is ready for acceptance';
+					$color = '#6CC644'; //github green
+			}
+
+			$pretext = em($item['type'] . ' updated by ' . $item['user']);
+			$text = b($item['id']) . $item['state'];
+			$fields = array(MakeField('', $slug));
+			$fallback = $item['type'] . ' ' . $item['id'] . $item['state'];
+
+		//display a link to the new artifact as a message attachment
+		} else {
+			$pretext = em('New ' . $item['type'] . ' added by ' . $item['user']);
+			$text = '';
+			$color = '#6CC644'; //github green
+			$fields = array(MakeField($item['id'], $slug));
+			$fallback = $item['type'] . ' ' . $item['id'] . ' added by ' . $item['user'];
+		}
+
+		$message = MakeAttachment($pretext, $text, $color, $fields, $fallback);
+		$success = sendIncomingWebHookMessage($SLACK_CHANNEL_FOR_RALLY_PROJECT, '', $message) && $success;
+	}
+
+	return $success;
 }
