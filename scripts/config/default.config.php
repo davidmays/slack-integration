@@ -24,5 +24,5 @@ $RALLYBOT_ICON = 'https://yt3.ggpht.com/-vkXOTHhRGck/AAAAAAAAAAI/AAAAAAAAAAA/IBj
 
 $CRON_INTERVAL = 61; //seconds between cron runs; pad for script run time and latency
 
-$RALLY_PROJECT_ID = REPLACE_ME; //number that follows '#/' in the URI of the project to track
+$RALLY_PROJECT_ID = REPLACE_ME; //number after '#/' in the URI of the project to track
 $SLACK_CHANNEL_FOR_RALLY_PROJECT = 'REPLACE ME'; //do not include hash symbol

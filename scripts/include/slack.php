@@ -77,19 +77,12 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 
 function SendIncomingWebHookMessage($channel, $payload, $attachments)
 {
-	global $config;
+	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON;
 
 	//allow bot to display formatted attachment text
 	$attachments->mrkdwn_in = ['pretext', 'text', 'title', 'fields'];
 
-	$reply = slack_incoming_hook_post_with_attachments(
-		$config['slack']['hook'],
-		$config['rally']['botname'],
-		$channel,
-		$config['rally']['boticon'],
-		$payload,
-		$attachments
-	);
+	$reply = slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $channel, $RALLYBOT_ICON, $payload, $attachments);
 
 	$success = ($reply == 'ok');
 	if (!$success) {
