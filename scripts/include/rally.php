@@ -2,11 +2,6 @@
 //rally commands
 
 
-function getProjectPayload($projectRefUri)
-{
-	$project = CallAPI($projectRefUri);
-}
-
 function CallAPI($uri)
 {
 	global $config;
@@ -16,13 +11,4 @@ function CallAPI($uri)
 
 	return $object;
 }
-
-
-function GetProjectID($projectref)
-{
-	$ProjectFull = CallAPI($projectref);
-	$projectid = $ProjectFull->Project->ObjectID;
-	return $projectid;
-}
-
 ?>
