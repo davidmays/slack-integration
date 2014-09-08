@@ -1,7 +1,8 @@
 <?
 require('include/memegenerator.php');
-require('include/slack.php');
 require('include/curl.php');
+require('include/slack.php');
+require('config/config.php');
 
 /*
 token=K2gDHdWZvZSmwOkW9O6yVbA7
@@ -34,7 +35,7 @@ $bottom = urlencode($parts[2]);
 $meme = CreateNewMeme($gen, $top, $bottom);
 mylog('sent.txt',$meme);
 
-$response = slack_incoming_hook_post($config['slack']['hook'], $cmd->UserName, $cmd->ChannelName, null, ":bow:", $meme);
+$response = slack_incoming_hook_post($SLACK_INCOMING_HOOK_URL, $cmd->UserName, $cmd->ChannelName, null, ":bow:", $meme);
 
 mylog('sent.txt',$response);
 

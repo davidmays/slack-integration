@@ -1,11 +1,9 @@
 <?
 require('include/curl.php');
 require('include/slack.php');
-require('include/slack.config.php');
+require('config/config.php');
 
 $command = BuildSlashCommand($_REQUEST);
-
-$hook = $config['slack']['hook'];
 
 //use one or the other of $emoji or $iconurl
 $emoji = ":camera:";
@@ -17,7 +15,7 @@ $imageSearchJson = get_url_contents('http://ajax.googleapis.com/ajax/services/se
 
 $imageresponse = json_decode($imageSearchJson);
 
-$userlink = "<https://cim.slack.com/team/{$command->UserName}|{$command->UserName}>";
+$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $command->UserName . '|' . $command->UserName . '>';
 
 if($imageresponse->responseData == null){
 	//{"responseData": null, "responseDetails": "qps rate exceeded", "responseStatus": 503}
@@ -34,7 +32,7 @@ $returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
 
 $payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 
-$ret = slack_incoming_hook_post($hook, "gifbot", $command->ChannelName, $iconurl, $emoji, $payload);
+$ret = slack_incoming_hook_post($SLACK_INCOMING_HOOK_URL, "gifbot", $command->ChannelName, $iconurl, $emoji, $payload);
 if($ret!="ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /gifme.\n{$ret}");
 ?>

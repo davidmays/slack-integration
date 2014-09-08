@@ -31,9 +31,9 @@ function BuildSlashCommand($request)
 
 
 function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-	
+
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user
 		);
@@ -58,7 +58,7 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
 
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user,
 		"icon_url"=>$icon,
