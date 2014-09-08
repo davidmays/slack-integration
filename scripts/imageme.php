@@ -5,12 +5,10 @@ require('config/config.php');
 
 $command = BuildSlashCommand($_REQUEST);
 
-$hook = $config['slack']['hook'];
-
 //use one or the other of $emoji or $iconurl
 $emoji = ":camera:";
 $iconurl = null;
-$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $command->UserName . '|' . $command->UserName . '>';
+$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $command->UserName . '|' . $command->UserName . '>';
 $maxtries = 2;
 $tries = 0;
 
@@ -39,7 +37,7 @@ $returnedimageurl = $imageresponse->responseData->results[$whichImage]->url;
 
 $payload = "@{$userlink} asked for '{$command->Text}'\n{$returnedimageurl}";
 
-$ret = slack_incoming_hook_post($hook, "imagebot", $command->ChannelName, $iconurl, $emoji, $payload);
+$ret = slack_incoming_hook_post($SLACK_INCOMING_HOOK_URL, "imagebot", $command->ChannelName, $iconurl, $emoji, $payload);
 if ($ret != "ok")
 	print_r("@tdm, gifbot got this response when it tried to post to the incoming hook for /imageme.\n{$ret}");
 
