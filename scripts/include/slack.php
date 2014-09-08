@@ -33,8 +33,10 @@ function BuildSlashCommand($request)
 
 function BuildUserLink($username)
 {
-    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
-    return $userlink;
+	global $SLACK_SUBDOMAIN;
+
+	$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $username . '|@' . $username . '>';
+	return $userlink;
 }
 
 function SanitizeText($text)
@@ -45,10 +47,10 @@ function SanitizeText($text)
 
 function TruncateText($text, $len)
 {
-	if(strlen($text) <= $len)
+	if (strlen($text) <= $len)
 		return $text;
 
-	return substr($text,0,$len)."...[MORE]";
+	return substr($text, 0, $len) . "...[MORE]";
 }
 
 function l($text, $url)
@@ -87,22 +89,6 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 
 	mylog('sent.txt', $data_string);
 	return curl_post($uri, $data_string);
-}
-
-function SendIncomingWebHookMessage($channel, $payload, $attachments)
-{
-	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON;
-
-	//allow bot to display formatted attachment text
-	$attachments->mrkdwn_in = ['pretext', 'text', 'title', 'fields'];
-
-	$reply = slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $channel, $RALLYBOT_ICON, $payload, $attachments);
-
-	$success = ($reply == 'ok');
-	if (!$success) {
-		trigger_error('Unable to send Incoming WebHook message: ' . $reply);
-	}
-	return $success;
 }
 
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments)

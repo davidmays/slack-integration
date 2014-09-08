@@ -8,7 +8,6 @@ function HandleItem($slackCommand, $rallyFormattedId)
 	$rallyItemType = substr($rallyFormattedId, 0, 2);
 
 	switch ($rallyItemType) {
-
 		case "DE":
 			return HandleDefect($rallyFormattedId, $slackCommand->ChannelName);
 			die;
@@ -327,7 +326,7 @@ function GetRallyAttachmentLink($attachmentRef)
 
 function postit($channel_name, $payload, $attachments)
 {
-	global $config, $slackCommand;
+	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON, $slackCommand;
 
-	return slack_incoming_hook_post_with_attachments($config['slack']['hook'], $config['rally']['botname'], $slackCommand->ChannelName, $config['rally']['boticon'], $payload, $attachments);
+	return slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $slackCommand->ChannelName, $RALLYBOT_ICON, $payload, $attachments);
 }
