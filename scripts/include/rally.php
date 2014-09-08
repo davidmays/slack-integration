@@ -68,15 +68,10 @@ function HandleStory($id, $channel_name)
 }
 
 function postit($channel_name, $payload, $attachments){
-	global $config, $slackCommand;
 
-	return slack_incoming_hook_post_with_attachments(
-		$config['slack']['hook'],
-		$config['rally']['botname'],
-		$slackCommand->ChannelName,
-		$config['rally']['boticon'],
-		$payload,
-		$attachments);
+	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON, $slackCommand;
+
+	return slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $slackCommand->ChannelName, $RALLYBOT_ICON, $payload, $attachments);
 }
 
 
@@ -300,11 +295,11 @@ function getProjectPayload($projectRefUri)
 	$project = CallAPI($projectRefUri);
 }
 
-function CallAPI($uri)
+function CallAPI($url)
 {
-	global $config;
+	global $RALLY_USERNAME, $RALLY_PASSWORD;
 
-	$json = get_url_contents_with_basicauth($uri, $config['rally']['username'], $config['rally']['password']);
+	$json = get_url_contents_with_basicauth($url, $RALLY_USERNAME, $RALLY_PASSWORD);
 	$object = json_decode($json);
 
 	return $object;
@@ -334,9 +329,9 @@ function FindRequirement($id)
 
 function BuildUserLink($username)
 {
-	global $config;
-	$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $username . '|@' . $username . '>';
-    return $userlink;
+	global $SLACK_SUBDOMAIN;
+	$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $username . '|@' . $username . '>';
+	return $userlink;
 }
 
 function GetArtifactQueryUri($id)
