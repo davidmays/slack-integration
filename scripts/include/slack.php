@@ -29,11 +29,24 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
+function BuildUserLink($username)
+{
+    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+    return $userlink;
+}
+
+function TruncateText($text, $len)
+{
+	if(strlen($text) <= $len)
+		return $text;
+
+	return substr($text,0,$len)."...[MORE]";
+}
 
 function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-	
+
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user
 		);
@@ -58,7 +71,7 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
 
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user,
 		"icon_url"=>$icon,
@@ -104,5 +117,16 @@ function MakeAttachment($pretext, $text, $color, $fields, $fallback){
 		$obj->fields = $fields;
 
 	return $obj;
+}
+
+function MakeField($title, $value, $short = false)
+{
+	$attachmentfield = array(
+		"title" => $title,
+		"value" => $value,
+		"short" => $short
+	);
+
+	return $attachmentfield;
 }
 ?>
