@@ -1,8 +1,6 @@
 <?php
-require('include/slack.php');
-require('include/curl.php');
-require('include/rally.php');
 require('config/config.php');
+require('include/rallyme.inc.php');
 
 $slackCommand = BuildSlashCommand($_REQUEST);
 

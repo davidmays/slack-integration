@@ -31,10 +31,24 @@ function BuildSlashCommand($request)
 
 //text-formatting functions
 
+function BuildUserLink($username)
+{
+    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+    return $userlink;
+}
+
 function SanitizeText($text)
 {
 	$text = strtr($text, array('<br />' => '\n', '<div>' => '\n', '<p>' => '\n'));
 	return html_entity_decode(strip_tags($text), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
+}
+
+function TruncateText($text, $len)
+{
+	if(strlen($text) <= $len)
+		return $text;
+
+	return substr($text,0,$len)."...[MORE]";
 }
 
 function l($text, $url)
@@ -146,4 +160,15 @@ function MakeAttachment($pretext, $text, $color, $fields, $fallback)
 		$obj->fields = $fields;
 
 	return $obj;
+}
+
+function MakeField($title, $value, $short = false)
+{
+	$attachmentfield = array(
+		"title" => $title,
+		"value" => $value,
+		"short" => $short
+	);
+
+	return $attachmentfield;
 }
