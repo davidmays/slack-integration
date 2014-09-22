@@ -3,7 +3,6 @@ slack-integration
 
 A place where I put some integration scripts for the popular Slack messaging platform.
 
-
 #Rally Bot
 
 Pushes notifications from Rally and allows users to fetch ticket details. Notifications are sent whenever:
@@ -14,7 +13,7 @@ Pushes notifications from Rally and allows users to fetch ticket details. Notifi
 
 The bot uses a combination of Rally's _State_ and _Ready_ fields to track the progress of user stories. When a story's state is set to "In-Progress" and ready is checked, rallybot will announce that the story is ready for testing. After testing is completed by a member of the QA team, they may either: 1) uncheck the Ready flag to have rallybot announce that the story needs work, or 2) set the story to "Completed" to notify the Product Owner that it is ready for review.
 
- **Note**: As soon as all of a story's tasks are set to  "Complete", Rally will automatically set the story's State to "Complete". So be sure to leave at least one task open in order to correctly track stories with defects.
+ **Note**: As soon as all of a story's tasks are completed, Rally will automatically set the story's state to "Completed". So be sure to leave at least one task open in order to correctly track stories with defects.
 
 The bot can also be configured to respond to a /rallyme slash command to query our Rally instance for defects, tasks and user stories. 
 
