@@ -3,7 +3,7 @@
 $RALLY_URL = 'https://rally1.rallydev.com/';
 $RALLY_TIMESTAMP_FORMAT = 'Y-m-d\TH:i:s.u\Z';
 
-function CallAPI($uri)
+function CallAPI($url)
 {
 	global $RALLY_USERNAME, $RALLY_PASSWORD;
 
