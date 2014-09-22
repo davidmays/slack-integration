@@ -197,11 +197,12 @@ function SendRallyUpdateNotifications($items)
 					$item['state'] = ' is ready for acceptance';
 					$color = '#6CC644'; //github green
 			}
+			$item['state'] = $item['id'] . $item['state'];
 
 			$pretext = em($item['type'] . ' updated by ' . $item['user']);
-			$text = b($item['id']) . $item['state'];
-			$fields = array(MakeField('', $slug));
-			$fallback = $item['type'] . ' ' . $item['id'] . $item['state'];
+			$text = '';
+			$fields = array(MakeField($item['state'], $slug));
+			$fallback = $item['type'] . ' ' . $item['state'];
 
 		//display a link to the new artifact as a message attachment
 		} else {
