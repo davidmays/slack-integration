@@ -6,7 +6,7 @@ A place where I put some integration scripts for the popular Slack messaging pla
 
 #Rally Bot
 
-We use this to query our Rally instance for defects, tasks and user stories. I have it configured to respond to a /rallyme slash command in Slack.
+Pushes notifications from Rally whenever a comment is added to a ticket, and queries our Rally instance for defects, tasks and user stories. I have it configured to respond to a /rallyme slash command in Slack.
 
 E.g.:
 /rallyme DE12345
