@@ -99,7 +99,8 @@ function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon,
 		"icon_url" => $icon,
 		"attachments" => array(
 			$attachments
-		)
+		),
+		'link_names' => 1 //allow bot to linkify at-mentions in attachments
 	);
 
 	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
