@@ -1,6 +1,6 @@
 <?
 //slack methods
-require_once('log.php');
+// require_once('log.php');
 
 /*
 Slash Command Incoming Variables
@@ -31,9 +31,9 @@ function BuildSlashCommand($request)
 
 
 function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-	
+
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user
 		);
@@ -49,7 +49,7 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 
 	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
 
-	mylog('sent.txt',$data_string);
+	// mylog('sent.txt',$data_string);
 	return curl_post($uri, $data_string);
 }
 
@@ -58,14 +58,14 @@ function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload
 function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
 
 	$data = array(
-		"text" => $payload, 
+		"text" => $payload,
 		"channel" => "#".$channel,
 		"username"=>$user,
 		"icon_url"=>$icon,
 		"attachments"=>array($attachments));
 
 	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-	mylog('sent.txt',$data_string);
+	// mylog('sent.txt',$data_string);
 	return curl_post($uri, $data_string);
 }
 
