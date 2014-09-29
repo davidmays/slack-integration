@@ -4,10 +4,12 @@ require('include/curl.php');
 require('include/rally.php');
 require('include/rallyme.config.php');
 require('include/slack.config.php');
+require('config/config.php');
+require('include/rallyme.inc.php');
 
-$slackCommand = BuildSlashCommand($_REQUEST);
+$result = NULL;
 
-$rallyFormattedId = strtoupper($slackCommand->Text);
-
-$result = HandleItem($slackCommand, $rallyFormattedId);
-?>
+if (isset($_REQUEST['token']) && $_REQUEST['token'] == $SLACK_OUTGOING_HOOK_TOKEN && isset($_REQUEST['text'])) {
+	$payload = FetchArtifactPayload($_REQUEST['text']);
+	$result = isset($_REQUEST['command']) ? SendArtifactPayload($payload) : ReturnArtifactPayload($payload);
+}
