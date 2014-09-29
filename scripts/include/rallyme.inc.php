@@ -69,6 +69,8 @@ function FetchArtifactPayload($command_text)
  */
 function ParseDefectPayload($Defect)
 {
+	global $RALLY_BASE_URL;
+
 	$state = $Defect->State;
 	if ($state == 'Closed') {
 		$Date = new DateTime($Defect->ClosedDate);
@@ -77,7 +79,7 @@ function ParseDefectPayload($Defect)
 
 	$ret = array(
 		'item_id' => $Defect->FormattedID,
-		'item_url' => $Defect->_ref,
+		'item_url' => $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID,
 		'title' => $Defect->_refObjectName,
 
 		'Creator' => $Defect->SubmittedBy->_refObjectName,
@@ -129,6 +131,7 @@ function ParseStoryPayload($Artifact)
  */
 function GetAttachmentLinks($attachment_ref)
 {
+	global $RALLY_BASE_URL;
 	$url = $RALLY_BASE_URL . 'slm/attachment/';
 	$ret = array();
 
