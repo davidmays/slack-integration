@@ -98,13 +98,9 @@ function ParseDefectPayload($Defect)
 	return $ret;
 }
 
-function GetDefectPayload($ref)
+function GetDefectPayload($defect)
 {
 	global $show, $requesting_user_name;
-
-	$object = CallAPI($ref);
-
-	$defect = $object->Defect;
 
 	$projecturi = $defect->Project->_ref;
 
