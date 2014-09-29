@@ -100,11 +100,6 @@ function ParseDefectPayload($Defect)
 
 function GetDefectPayload($defect)
 {
-	global $show, $requesting_user_name;
-
-	$projecturi = $defect->Project->_ref;
-
-	$title = $defect->_refObjectName;
 	$description = $defect->Description;
 	$owner = $defect->Owner->_refObjectName;
 	$submitter = $defect->SubmittedBy->_refObjectName;
@@ -116,25 +111,21 @@ function GetDefectPayload($defect)
 	$frequency = $defect->c_Frequency;
 	$foundinbuild = $defect->FoundInBuild;
 
-	$short_description = TruncateText(strip_tags($description), 200);
-
-	$ProjectFull = CallAPI($projecturi);
+	$ProjectFull = CallAPI($defect->Project->_ref);
 	$projectid = $ProjectFull->Project->ObjectID;
 	$defectid = $defect->ObjectID;
 	$projectName = $defect->Project->_refObjectName;
 	$itemid = $defect->FormattedID;
 
-	$attachmentcount = $defect->Attachments->Count;
-
 	$firstattachment = null;
-	if ($attachmentcount > 0) {
+	if ($defect->Attachments->Count > 0) {
 		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
 		$firstattachment = MakeField("attachment", $linktxt, false);
 	}
 
 	$defecturi = "https://rally1.rallydev.com/#/{$projectid}d/detail/defect/{$defectid}";
 
-	$enctitle = urlencode($title);
+	$enctitle = urlencode($defect->_refObjectName);
 	$linktext = "<{$defecturi}|{$enctitle}>";
 
 	$color = "bad";
@@ -163,8 +154,9 @@ function GetDefectPayload($defect)
 		MakeField("description", $short_description, false)
 	);
 
-	if ($firstattachment != null)
+	if ($firstattachment != null) {
 		array_push($fields, $firstattachment);
+	}
 
 	global $slackCommand;
 
