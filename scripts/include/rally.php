@@ -1,6 +1,7 @@
 <?
 //rally commands
-
+$RALLY_BASE_URL = 'https://rally1.rallydev.com/';
+$RALLY_API_URL = $RALLY_BASE_URL . 'slm/webservice/v2.0/';
 
 function HandleItem($slackCommand, $rallyFormattedId)
 {
@@ -53,11 +54,11 @@ function HandleStory($id, $channel_name)
 	$payload = GetRequirementPayload($ref);
 
 	$result = postit($channel_name, $payload->text, $payload->attachments);
-	
+
 	if($result=='Invalid channel specified'){
 	    die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
-	
+
 	if($result!="ok"){
 		print_r($result."\n");
 		print_r(json_encode($payload));
@@ -71,11 +72,11 @@ function postit($channel_name, $payload, $attachments){
 	global $config, $slackCommand;
 
 	return slack_incoming_hook_post_with_attachments(
-		$config['slack']['hook'], 
-		$config['rally']['botname'], 
-		$slackCommand->ChannelName, 
-		$config['rally']['boticon'], 
-		$payload, 
+		$config['slack']['hook'],
+		$config['rally']['botname'],
+		$slackCommand->ChannelName,
+		$config['rally']['boticon'],
+		$payload,
 		$attachments);
 }
 
@@ -169,7 +170,7 @@ function GetDefectPayload($ref)
 		array_push($fields,$firstattachment);
 
 	global $slackCommand;
-	
+
 	$userlink = BuildUserLink($slackCommand->UserName);
 	$user_message = "Ok, {$userlink}, here's the defect you requested.";
 
@@ -265,7 +266,7 @@ function GetRequirementPayload($ref)
 
 		if($blocked)
 			array_push($fields, MakeField("blocked",$blockedreason,true));
-		
+
 		array_push($fields, MakeField("description",$short_description,false));
 
 		if($firstattachment!=null)
