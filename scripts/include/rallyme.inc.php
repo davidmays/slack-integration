@@ -98,6 +98,89 @@ function ParseDefectPayload($Defect)
 	return $ret;
 }
 
+function GetDefectPayload($ref)
+{
+	global $show, $requesting_user_name;
+
+	$object = CallAPI($ref);
+
+	$defect = $object->Defect;
+
+	$projecturi = $defect->Project->_ref;
+
+	$title = $defect->_refObjectName;
+	$description = $defect->Description;
+	$owner = $defect->Owner->_refObjectName;
+	$submitter = $defect->SubmittedBy->_refObjectName;
+	$project = $object->Project->_refObjectName;
+	$created = $defect->_CreatedAt;
+	$state = $defect->State;
+	$priority = $defect->Priority;
+	$severity = $defect->Severity;
+	$frequency = $defect->c_Frequency;
+	$foundinbuild = $defect->FoundInBuild;
+
+	$short_description = TruncateText(strip_tags($description), 200);
+
+	$ProjectFull = CallAPI($projecturi);
+	$projectid = $ProjectFull->Project->ObjectID;
+	$defectid = $defect->ObjectID;
+	$projectName = $defect->Project->_refObjectName;
+	$itemid = $defect->FormattedID;
+
+	$attachmentcount = $defect->Attachments->Count;
+
+	$firstattachment = null;
+	if ($attachmentcount > 0) {
+		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
+		$firstattachment = MakeField("attachment", $linktxt, false);
+	}
+
+	$defecturi = "https://rally1.rallydev.com/#/{$projectid}d/detail/defect/{$defectid}";
+
+	$enctitle = urlencode($title);
+	$linktext = "<{$defecturi}|{$enctitle}>";
+
+	$color = "bad";
+
+	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
+	$short_description = TruncateText($clean_description, 300);
+
+	$fields = array(
+		MakeField("link", $linktext, false),
+
+		MakeField("id", $itemid, true),
+		MakeField("owner", $owner, true),
+
+		MakeField("project", $projectName, true),
+		MakeField("created", $created, true),
+
+		MakeField("submitter", $submitter, true),
+		MakeField("state", $state, true),
+
+		MakeField("priority", $priority, true),
+		MakeField("severity", $severity, true),
+
+		MakeField("frequency", $frequency, true),
+		MakeField("found in", $foundinbuild, true),
+
+		MakeField("description", $short_description, false)
+	);
+
+	if ($firstattachment != null)
+		array_push($fields, $firstattachment);
+
+	global $slackCommand;
+
+	$userlink = BuildUserLink($slackCommand->UserName);
+	$user_message = "Ok, {$userlink}, here's the defect you requested.";
+
+	$obj = new stdClass;
+	$obj->text = "";
+	$obj->attachments = MakeAttachment($user_message, "", $color, $fields, $storyuri);
+	return $obj;
+}
+
 /**
  * Prepares a table of fields attached to a Rally artifact for display.
  *
