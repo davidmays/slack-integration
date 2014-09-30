@@ -29,6 +29,16 @@ function BuildSlashCommand($request)
 	return $cmd;
 }
 
+/**
+ * Determine if the incoming request was made via a slash command.
+ *
+ * @return boolean
+ */
+function isSlashCommand()
+{
+	return isset($_REQUEST['command']) ? $_REQUEST['command'] : FALSE;
+}
+
 //text-formatting functions
 
 function BuildUserLink($username)
@@ -55,46 +65,67 @@ function em($text)
 	return '_' . $text . '_';
 }
 
-function slack_incoming_hook_post($uri, $user, $channel, $icon, $emoji, $payload){
-
+function slack_incoming_hook_post($url, $user, $channel, $icon, $emoji, $payload)
+{
 	$data = array(
-		"text" => $payload,
-		"channel" => "#".$channel,
-		"username"=>$user
-		);
+		'text' => $payload,
+		'channel' => '#' . $channel,
+		'username' => $user,
+		'link_names' => 1
+	);
 
-	if($icon!=null)
-	{
+	if ($icon != null) {
 		$data['icon_url'] = $icon;
-	}
-	elseif($emoji!=null)
-	{
+	} elseif ($emoji != null) {
 		$data['icon_emoji'] = $emoji;
 	}
 
-	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-
-	mylog('sent.txt',$data_string);
-	return curl_post($uri, $data_string);
+	return _incoming_hook_post($url, $data);
 }
 
-
-
-function slack_incoming_hook_post_with_attachments($uri, $user, $channel, $icon, $payload, $attachments){
+function slack_incoming_hook_post_with_attachments($url, $user, $channel, $icon, $payload, $attachments)
+{
+	//allow bot to display formatted attachment text
+	$attachments->mrkdwn_in = array('pretext', 'text', 'title', 'fields');
 
 	$data = array(
-		"text" => $payload,
-		"channel" => "#".$channel,
-		"username"=>$user,
-		"icon_url"=>$icon,
-		"attachments"=>array($attachments));
+		'text' => $payload,
+		'channel' => '#' . $channel,
+		'username' => $user,
+		'icon_url' => $icon,
+		'attachments' => array($attachments),
+		'link_names' => 1 //allow bot to linkify at-mentions in attachments
+	);
 
-	$data_string = "payload=" . json_encode($data, JSON_HEX_AMP|JSON_HEX_APOS|JSON_NUMERIC_CHECK|JSON_PRETTY_PRINT);
-	mylog('sent.txt',$data_string);
-	return curl_post($uri, $data_string);
+	return _incoming_hook_post($url, $data);
 }
 
+function _incoming_hook_post($url, $data)
+{
+	$data_string = 'payload=' . json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
+	$data_string = strtr($data_string, array('\\\\n' => '\n')); //unescape slashes in newline characters
 
+	$result = curl_post($url, $data_string);
+	switch ($result) {
+		case 'ok':
+			mylog('sent.txt', $data_string);
+			return $result;
+		case 'Invalid channel specified':
+			exit('Unable to post messages to a private chat');
+		default:
+			exit('Unable to send Incoming WebHook message: ' . $reply);
+	}
+}
+
+function PrintJsonResponse($payload)
+{
+	$data = array('text' => $payload);
+
+	$data_string = json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
+	$data_string = strtr($data_string, ['\n' => 'n', '\t' => 't']); //fix double-escaped codes
+
+	return print_r($data_string);
+}
 
 /*
 slack attachment format

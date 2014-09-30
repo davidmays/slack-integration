@@ -6,6 +6,8 @@ require_once('curl.php');
 require_once('slack.php');
 require_once('rally.php');
 
+set_error_handler('_HandleRallyMeErrors', E_USER_ERROR);
+
 /**
  * Parses artifact ID from request, queries Rally, and selects handler to gather
  * field values.
@@ -21,43 +23,76 @@ function FetchArtifactPayload($command_text)
 	list($formatted_id) = explode(' ', trim($command_text));
 	$formatted_id = strtoupper($formatted_id);
 
-	$artifact_query = $RALLY_API_URL;
+	//handle item
+	$query_url = $RALLY_API_URL;
 	switch (substr($formatted_id, 0, 2)) {
 
-		case 'DE':
-			$artifact_query .= 'defect';
+		case 'DE': //find defect
+			$query_url .= 'defect';
 			$artifact_type = 'Defect';
 			$func = 'ParseDefectPayload';
 			break;
 
 		case 'TA':
-			$artifact_query .= 'artifact';
+			$query_url .= 'artifact';
 			$artifact_type = 'Task';
 			$func = 'ParseTaskPayload';
 			break;
 
 		case 'US':
-			$artifact_query .= 'artifact';
+			$query_url .= 'artifact';
 			$artifact_type = 'HierarchicalRequirement';
 			$func = 'ParseStoryPayload';
 			break;
 
 		default:
-			die('Sorry, I don\'t know how to handle "' . $command_text . '". You can look up user stories, defects, and tasks by ID, like "DE1234".');
+			trigger_error('Sorry, @user, I don\'t know how to handle "' . $command_text . '". You can look up user stories, defects, and tasks by ID, like "DE1234".', E_USER_ERROR);
 	}
-	$artifact_query .= '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
+	$query_url .= '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
 
-	$Results = CallAPI($artifact_query);
-	if ($Results->QueryResult->TotalResultCount == 0) {
-		die('Sorry, I couldn\'t find ' . $formatted_id);
+	$Results = CallAPI($query_url);
+	if ($Results->QueryResult->TotalResultCount == 0) { //get count
+		trigger_error('Sorry, @user, I couldn\'t find ' . $formatted_id, E_USER_ERROR); //not found
 	}
 
+	//get first object from search result
 	foreach ($Results->QueryResult->Results as $Result) {
 		if ($Result->_type == $artifact_type) {
 			return call_user_func($func, $Result);
 		}
 	}
-	die('Sorry, your search for "' . $formatted_id . '" was ambiguous.');
+	trigger_error('Sorry, @user, your search for "' . $formatted_id . '" was ambiguous.', E_USER_ERROR);
+}
+
+/**
+ * Notifies Slack users of errors either via an incoming webhook or in the body
+ * of the HTTP response.
+ *
+ * @param  int $errno
+ * @param  string $errstr
+ *
+ * @return void
+ */
+function _HandleRallyMeErrors($errno, $errstr)
+{
+	//assume at-mentions are linkified over either transmission channel
+	$user = '@' . $_REQUEST['user_name'];
+	$errstr = strtr($errstr, array('@user' => $user));
+
+	if (isSlashCommand()) {
+		//use an incoming webhook to report error
+		return slack_incoming_hook_post(
+			$config['slack']['hook'],
+			$config['rally']['botname'],
+			$_REQUEST['channel_name'],
+			$config['rally']['boticon'],
+			NULL,
+			$errstr
+		);
+	} else {
+		//otherwise return Slack-formatted JSON in the response body
+		return PrintJsonResponse($errstr);
+	}
 }
 
 /**
@@ -249,9 +284,5 @@ function ReturnArtifactPayload($payload)
 		}
 	}
 
-	$data = ['text' => $text];
-	$text = json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
-	$text = strtr($text, ['\n' => 'n', '\t' => 't']); //fix double-escaped codes
-
-	return print_r($text);
+	return PrintJsonResponse($text);
 }
