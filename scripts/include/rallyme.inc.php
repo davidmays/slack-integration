@@ -111,9 +111,6 @@ function GetDefectPayload($defect)
 	$frequency = $defect->c_Frequency;
 	$foundinbuild = $defect->FoundInBuild;
 
-	$ProjectFull = CallAPI($defect->Project->_ref);
-	$projectid = $ProjectFull->Project->ObjectID;
-	$defectid = $defect->ObjectID;
 	$projectName = $defect->Project->_refObjectName;
 	$itemid = $defect->FormattedID;
 
@@ -123,10 +120,11 @@ function GetDefectPayload($defect)
 		$firstattachment = MakeField("attachment", $linktxt, false);
 	}
 
-	$defecturi = "https://rally1.rallydev.com/#/{$projectid}d/detail/defect/{$defectid}";
-
 	$enctitle = urlencode($defect->_refObjectName);
-	$linktext = "<{$defecturi}|{$enctitle}>";
+	$projectid = basename($defect->Project->_ref);
+	$defectid = $defect->ObjectID;
+	$defecturl = $RALLY_BASE_URL . '#/' . $projectid . '/detail/defect/' . $defectid;
+	$linktext = l($enctitle, $defecturl);
 
 	$color = "bad";
 
