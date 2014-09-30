@@ -103,7 +103,7 @@ function GetDefectPayload($defect)
 	global $slackCommand, $RALLY_BASE_URL;
 
 	$userlink = BuildUserLink($slackCommand->UserName);
-	$user_message = 'Ok, ' . $userlink . ', here's the defect you requested.';
+	$user_message = 'Ok, ' . $userlink . ', here\'s the defect you requested.';
 
 	$color = 'bad';
 
