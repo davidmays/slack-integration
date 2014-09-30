@@ -148,10 +148,8 @@ function GetDefectPayload($defect)
 		array_push($fields, $firstattachment);
 	}
 
-	$obj = new stdClass;
-	$obj->text = '';
-	$obj->attachments = MakeAttachment($user_message, '', $color, $fields, $defecturl);
-	return $obj;
+	$payload = array('text' => '', 'attachments' => MakeAttachment($user_message, '', $color, $fields, $defecturl));
+	return (object) $payload;
 }
 
 /**
