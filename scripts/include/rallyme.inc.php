@@ -100,21 +100,12 @@ function ParseDefectPayload($Defect)
 
 function GetDefectPayload($defect)
 {
-	$submitter = $defect->SubmittedBy->_refObjectName;
-	$created = $defect->_CreatedAt;
-	$state = $defect->State;
-	$priority = $defect->Priority;
-	$severity = $defect->Severity;
-	$frequency = $defect->c_Frequency;
-	$foundinbuild = $defect->FoundInBuild;
+	global $slackCommand, $RALLY_BASE_URL;
 
-	$firstattachment = null;
-	if ($defect->Attachments->Count > 0) {
-		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
-		$firstattachment = MakeField("attachment", $linktxt, false);
-	}
+	$userlink = BuildUserLink($slackCommand->UserName);
+	$user_message = "Ok, {$userlink}, here's the defect you requested.";
 
-	global $RALLY_API_URL;
+	$color = "bad";
 
 	$enctitle = urlencode($defect->_refObjectName);
 	$projectid = basename($defect->Project->_ref);
@@ -125,6 +116,13 @@ function GetDefectPayload($defect)
 	$itemid = $defect->FormattedID;
 	$owner = $defect->Owner->_refObjectName;
 	$projectName = $defect->Project->_refObjectName;
+	$created = $defect->_CreatedAt;
+	$submitter = $defect->SubmittedBy->_refObjectName;
+	$state = $defect->State;
+	$priority = $defect->Priority;
+	$severity = $defect->Severity;
+	$frequency = $defect->c_Frequency;
+	$foundinbuild = $defect->FoundInBuild;
 
 	$description = $defect->Description;
 	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
@@ -151,20 +149,19 @@ function GetDefectPayload($defect)
 		MakeField("description", $short_description, false)
 	);
 
+	$firstattachment = null;
+	if ($defect->Attachments->Count > 0) {
+		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
+		$firstattachment = MakeField("attachment", $linktxt, false);
+	}
+
 	if ($firstattachment != null) {
 		array_push($fields, $firstattachment);
 	}
 
-	global $slackCommand;
-
-	$userlink = BuildUserLink($slackCommand->UserName);
-	$user_message = "Ok, {$userlink}, here's the defect you requested.";
-
-	$color = "bad";
-
 	$obj = new stdClass;
 	$obj->text = "";
-	$obj->attachments = MakeAttachment($user_message, "", $color, $fields, $storyuri);
+	$obj->attachments = MakeAttachment($user_message, "", $color, $fields, $defecturl);
 	return $obj;
 }
 
