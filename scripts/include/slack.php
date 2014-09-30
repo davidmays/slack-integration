@@ -33,8 +33,10 @@ function BuildSlashCommand($request)
 
 function BuildUserLink($username)
 {
-    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
-    return $userlink;
+	global $SLACK_SUBDOMAIN;
+
+	$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $username . '|@' . $username . '>';
+	return $userlink;
 }
 
 function SanitizeText($text)
