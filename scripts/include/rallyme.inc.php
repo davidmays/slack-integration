@@ -81,7 +81,7 @@ function _HandleRallyMeErrors($errno, $errstr)
 
 	if (isSlashCommand()) {
 		//use an incoming webhook to report error
-		return slack_incoming_hook_post(
+		slack_incoming_hook_post(
 			$config['slack']['hook'],
 			$config['rally']['botname'],
 			$_REQUEST['channel_name'],
@@ -91,8 +91,10 @@ function _HandleRallyMeErrors($errno, $errstr)
 		);
 	} else {
 		//otherwise return Slack-formatted JSON in the response body
-		return PrintJsonResponse($errstr);
+		PrintJsonResponse($errstr);
 	}
+
+	exit();
 }
 
 /**
