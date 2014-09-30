@@ -100,10 +100,7 @@ function ParseDefectPayload($Defect)
 
 function GetDefectPayload($defect)
 {
-	$description = $defect->Description;
-	$owner = $defect->Owner->_refObjectName;
 	$submitter = $defect->SubmittedBy->_refObjectName;
-	$project = $object->Project->_refObjectName;
 	$created = $defect->_CreatedAt;
 	$state = $defect->State;
 	$priority = $defect->Priority;
@@ -111,14 +108,13 @@ function GetDefectPayload($defect)
 	$frequency = $defect->c_Frequency;
 	$foundinbuild = $defect->FoundInBuild;
 
-	$projectName = $defect->Project->_refObjectName;
-	$itemid = $defect->FormattedID;
-
 	$firstattachment = null;
 	if ($defect->Attachments->Count > 0) {
 		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
 		$firstattachment = MakeField("attachment", $linktxt, false);
 	}
+
+	global $RALLY_API_URL;
 
 	$enctitle = urlencode($defect->_refObjectName);
 	$projectid = basename($defect->Project->_ref);
@@ -126,8 +122,11 @@ function GetDefectPayload($defect)
 	$defecturl = $RALLY_BASE_URL . '#/' . $projectid . '/detail/defect/' . $defectid;
 	$linktext = l($enctitle, $defecturl);
 
-	$color = "bad";
+	$itemid = $defect->FormattedID;
+	$owner = $defect->Owner->_refObjectName;
+	$projectName = $defect->Project->_refObjectName;
 
+	$description = $defect->Description;
 	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
 	$short_description = TruncateText($clean_description, 300);
 
@@ -160,6 +159,8 @@ function GetDefectPayload($defect)
 
 	$userlink = BuildUserLink($slackCommand->UserName);
 	$user_message = "Ok, {$userlink}, here's the defect you requested.";
+
+	$color = "bad";
 
 	$obj = new stdClass;
 	$obj->text = "";
