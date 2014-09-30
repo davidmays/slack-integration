@@ -75,6 +75,8 @@ function FetchArtifactPayload($command_text)
  */
 function _HandleRallyMeErrors($errno, $errstr)
 {
+	global $config;
+
 	//assume at-mentions are linkified over either transmission channel
 	$user = '@' . $_REQUEST['user_name'];
 	$errstr = strtr($errstr, array('@user' => $user));
