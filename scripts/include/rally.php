@@ -3,28 +3,6 @@
 $RALLY_BASE_URL = 'https://rally1.rallydev.com/';
 $RALLY_API_URL = $RALLY_BASE_URL . 'slm/webservice/v2.0/';
 
-function HandleItem($slackCommand, $rallyFormattedId)
-{
-	$rallyItemType = substr($rallyFormattedId,0,2);
-
-	switch($rallyItemType){
-
-	case "DE":
-		return HandleDefect($rallyFormattedId, $slackCommand->ChannelName);
-		die;
-		break;
-	case "US":
-	case "TA":
-		return HandleStory($rallyFormattedId, $slackCommand->ChannelName);
-		die;
-		break;
-	default:
-		print_r("Sorry, I don't know what kind of rally object {$rallyFormattedId} is. If you need rallyme to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");
-		die;
-		break;
-	}
-}
-
 function HandleDefect($id, $channel_name)
 {
 	$defectref = FindDefect($id);
@@ -253,52 +231,6 @@ function GetArtifactQueryUri($id)
 {
 	global $config;
 	return str_replace("[[ID]]", $id, $config['rally']['artifactquery']);
-}
-
-function GetDefectQueryUri($id)
-{
-	global $config;
-	return str_replace("[[ID]]", $id, $config['rally']['defectquery']);
-}
-
-function FindDefect($id)
-{
-	$query = GetDefectQueryUri($id);
-	$searchresult = CallAPI($query);
-
-	$count = GetCount($searchresult);
-	if($count == 0)
-		NotFound($id);
-
-	return GetFirstObjectFromSearchResult("Defect", $searchresult);
-}
-
-function GetCount($searchresult)
-{
-	return $searchresult->QueryResult->TotalResultCount;
-}
-
-function NotFound($id)
-{
-	global $slackCommand;
-	$userlink = BuildUserLink($slackCommand->UserName);
-	print_r("Sorry {$userlink}, I couldn't find {$id}");die;
-}
-
-
-function GetFirstObjectFromSearchResult($objectName, $result)
-{
-	foreach ($result->QueryResult->Results as $result)
-	{
-		if($result->_type == $objectName)
-			return $result->_ref;
-	}
-	global $slackCommand;
-	$userlink = BuildUserLink($slackCommand->UserName);
-	print_r("Sorry @{$userlink}, your search for '{$slackCommand->Text}' was ambiguous.:\n");
-	print_r("Here's what Rally told me:\n");
-	print_r($result);
-	die;
 }
 
 function TruncateText($text, $len)
