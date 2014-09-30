@@ -31,6 +31,12 @@ function BuildSlashCommand($request)
 
 //text-formatting functions
 
+function BuildUserLink($username)
+{
+    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
+    return $userlink;
+}
+
 function SanitizeText($text)
 {
 	$text = strtr($text, array('<br />' => '\n', '<div>' => '\n', '<p>' => '\n'));

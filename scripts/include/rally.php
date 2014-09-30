@@ -249,12 +249,6 @@ function FindRequirement($id)
 	return GetFirstObjectFromSearchResult("HierarchicalRequirement", $searchresult);
 }
 
-function BuildUserLink($username)
-{
-    $userlink = "<https://cim.slack.com/team/{$username}|@{$username}>";
-    return $userlink;
-}
-
 function GetArtifactQueryUri($id)
 {
 	global $config;
