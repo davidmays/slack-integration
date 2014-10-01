@@ -108,33 +108,62 @@ function _HandleRallyMeErrors($errno, $errstr)
  */
 function ParseDefectPayload($Defect)
 {
-	global $RALLY_BASE_URL;
+	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
-	$state = $Defect->State;
-	if ($state == 'Closed') {
-		$Date = new DateTime($Defect->ClosedDate);
-		$state .= ' ' . $Date->format('M j');
+	$title = $Defect->_refObjectName;
+	$header = array('title' => $title);
+	$item_url = $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID;
+
+	switch ($RALLYME_DISPLAY_VERSION) {
+
+		case 2:
+			$header['item_id'] = $Defect->FormattedID;
+			$header['item_url'] = $item_url;
+
+			$state = $Defect->State;
+			if ($state == 'Closed') {
+				$Date = new DateTime($Defect->ClosedDate);
+				$state .= ' ' . $Date->format('M j');
+			}
+
+			$fields = array(
+				'Creator' => $Defect->SubmittedBy->_refObjectName,
+				'Created' => $Defect->_CreatedAt,
+				'Owner' => $Defect->Owner->_refObjectName,
+				'State' => $state,
+				'Priority' => $Defect->Priority,
+				'Severity' => $Defect->Severity,
+				'Description' => $Defect->Description,
+			);
+			if ($Defect->Attachments->Count > 0) {
+				$fields['Attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
+			}
+			break;
+
+		default:
+			$header['type'] = 'defect';
+
+			$fields = array(
+				'link' => array($title => $item_url),
+				'id' => $Defect->FormattedID,
+				'owner' => $Defect->Owner->_refObjectName,
+				'project' => $Defect->Project->_refObjectName,
+				'created' => $Defect->_CreatedAt,
+				'submitter' => $Defect->SubmittedBy->_refObjectName,
+				'state' => $Defect->State,
+				'priority' => $Defect->Priority,
+				'severity' => $Defect->Severity,
+				'frequency' => $Defect->c_Frequency,
+				'found in' => $Defect->FoundInBuild,
+				'description' => $Defect->Description,
+			);
+			if ($Defect->Attachments->Count > 0) {
+				$fields['attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
+			}
+			break;
+
 	}
-
-	$ret = array(
-		'item_id' => $Defect->FormattedID,
-		'item_url' => $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID,
-		'title' => $Defect->_refObjectName,
-
-		'Creator' => $Defect->SubmittedBy->_refObjectName,
-		'Created' => $Defect->_CreatedAt,
-		'Owner' => $Defect->Owner->_refObjectName,
-		'State' => $state,
-		'Priority' => $Defect->Priority,
-		'Severity' => $Defect->Severity,
-		'Description' => $Defect->Description,
-	);
-
-	if ($Defect->Attachments->Count > 0) {
-		$ret['Attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
-	}
-
-	return $ret;
+	return array('header' => $header, 'fields' => $fields);
 }
 
 function GetDefectPayload($defect)
@@ -226,16 +255,17 @@ function GetAttachmentLinks($attachment_ref)
 {
 	global $RALLY_BASE_URL;
 	$url = $RALLY_BASE_URL . 'slm/attachment/';
-	$ret = array();
+	$links = array();
 
 	$Attachments = CallAPI($attachment_ref);
+
 	foreach ($Attachments->QueryResult->Results as $Attachment) {
 		$filename = $Attachment->_refObjectName;
 		$link_url = $url . $Attachment->ObjectID . '/' . urlencode($filename);
-		$ret[$filename] = $link_url;
+		$links[$filename] = $link_url;
 	}
 
-	return $ret;
+	return $links;
 }
 
 /**
@@ -247,7 +277,44 @@ function GetAttachmentLinks($attachment_ref)
  */
 function SendArtifactPayload($payload)
 {
+	global $config;
 
+	$prextext = ArtifactPretext($payload['header']);
+	$color = 'bad';
+
+	$fields = array();
+	foreach ($payload['fields'] as $label => $value) {
+		$short = TRUE;
+		switch ($label) {
+
+			case 'Parent':
+			case 'Attachment':
+			case 'link':
+			case 'attachment':
+				$link_url = reset($value);
+				$value = l(urlencode(key($value)), $link_url);
+				$short = FALSE;
+				break;
+
+			case 'Description':
+			case 'description':
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
+				$short = FALSE;
+				break;
+		}
+		$fields[] = MakeField($label, $value, $short);
+	}
+
+	$attachment = MakeAttachment($prextext, '', $color, $fields, $payload['header']['item_url']);
+
+	return slack_incoming_hook_post_with_attachments(
+		$config['slack']['hook'],
+		$config['rally']['botname'],
+		$_REQUEST['channel_name'],
+		$config['rally']['boticon'],
+		'',
+		$attachment
+	);
 }
 
 /**
@@ -259,10 +326,10 @@ function SendArtifactPayload($payload)
  */
 function ReturnArtifactPayload($payload)
 {
-	$text = em('Details for ' . $payload['item_id'] . ' ' . l($payload['title'], $payload['item_url']));
+	$text = ArtifactPretext($payload['header']);
 
-	foreach (array_slice($payload, 3) as $title => $value) {
-		switch ($title) {
+	foreach ($payload['fields'] as $label => $value) {
+		switch ($label) {
 
 			case 'Attachment':
 			case 'Parent':
@@ -271,22 +338,34 @@ function ReturnArtifactPayload($payload)
 				break;
 
 			case 'Block Reason':
-				$title = '';
+				$label = '';
 				$value = SanitizeText($value);
 				break;
 
 			case 'Description':
-				$value = TruncateText(SanitizeText($value), 300, $payload['item_url']);
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
 				$value = '\n> ' . strtr($value, ['\n' => '\n> ']);
 		}
 
-		if ($title) {
-			$title .= ':';
-			$text .= '\n`' . str_pad($title, 15) . '`\t' . $value;
+		if ($label) {
+			$label .= ':';
+			$text .= '\n`' . str_pad($label, 15) . '`\t' . $value;
 		} else {
 			$text .= '\n>' . $value;
 		}
 	}
 
 	return PrintJsonResponse($text);
+}
+
+function ArtifactPretext($info)
+{
+	global $RALLYME_DISPLAY_VERSION;
+
+	switch ($RALLYME_DISPLAY_VERSION) {
+		case 2:
+			return em('Details for ' . $info['item_id'] . ' ' . l($info['title'], $info['item_url']));
+		default:
+			return 'Ok, @' . $_REQUEST['user_name'] . ', here\'s the ' . $info['type'] . ' you requested.';
+	}
 }
