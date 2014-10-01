@@ -28,19 +28,16 @@ function FetchArtifactPayload($command_text)
 	switch (substr($formatted_id, 0, 2)) {
 
 		case 'DE': //find defect
-			$query_url .= 'defect';
 			$artifact_type = 'Defect';
 			$func = 'ParseDefectPayload';
 			break;
 
 		case 'TA':
-			$query_url .= 'artifact';
 			$artifact_type = 'Task';
 			$func = 'ParseTaskPayload';
 			break;
 
 		case 'US':
-			$query_url .= 'artifact';
 			$artifact_type = 'HierarchicalRequirement';
 			$func = 'ParseStoryPayload';
 			break;
@@ -48,7 +45,7 @@ function FetchArtifactPayload($command_text)
 		default:
 			trigger_error('Sorry, @user, I don\'t know how to handle "' . $command_text . '". You can look up user stories, defects, and tasks by ID, like "DE1234".', E_USER_ERROR);
 	}
-	$query_url .= '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
+	$query_url .= strtolower($artifact_type) . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
 
 	$Results = CallAPI($query_url);
 	if ($Results->QueryResult->TotalResultCount == 0) { //get count
