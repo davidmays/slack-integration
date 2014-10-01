@@ -2,9 +2,9 @@
 /**
  * Responds to queries for information about defects, tasks, and user stories.
  */
-require_once('curl.php');
-require_once('slack.php');
-require_once('rally.php');
+require('curl.php');
+require('slack.php');
+require('rally.php');
 
 set_error_handler('_HandleRallyMeErrors', E_USER_ERROR);
 
