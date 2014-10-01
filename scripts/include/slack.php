@@ -134,7 +134,7 @@ function PrintJsonResponse($payload)
 	$data = array('text' => $payload);
 
 	$data_string = json_encode($data, JSON_HEX_AMP | JSON_HEX_APOS | JSON_NUMERIC_CHECK | JSON_PRETTY_PRINT);
-	$data_string = strtr($data_string, ['\n' => 'n', '\t' => 't']); //fix double-escaped codes
+	$data_string = strtr($data_string, array('\n' => 'n', '\t' => 't')); //fix double-escaped codes
 
 	return print_r($data_string);
 }
