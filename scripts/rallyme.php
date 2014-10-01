@@ -9,7 +9,7 @@ require('include/rallyme.inc.php');
 
 $result = NULL;
 
-if (isset($_REQUEST['token']) && $_REQUEST['token'] == $SLACK_OUTGOING_HOOK_TOKEN && isset($_REQUEST['text'])) {
+if (isValidOutgoingHookRequest() && isset($_REQUEST['text'])) {
 	$payload = FetchArtifactPayload($_REQUEST['text']);
-	$result = isset($_REQUEST['command']) ? SendArtifactPayload($payload) : ReturnArtifactPayload($payload);
+	$result = isSlashCommand() ? SendArtifactPayload($payload) : ReturnArtifactPayload($payload);
 }

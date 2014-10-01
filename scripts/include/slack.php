@@ -30,6 +30,18 @@ function BuildSlashCommand($request)
 }
 
 /**
+ * Determine if the incoming request is using the correct token.
+ *
+ * @return boolean
+ */
+function isValidOutgoingHookRequest()
+{
+	global $SLACK_OUTGOING_HOOK_TOKEN;
+
+	return isset($_REQUEST['token']) && $_REQUEST['token'] == $SLACK_OUTGOING_HOOK_TOKEN;
+}
+
+/**
  * Determine if the incoming request was made via a slash command.
  *
  * @return boolean
