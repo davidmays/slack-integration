@@ -110,8 +110,7 @@ function ParseDefectPayload($Defect)
 {
 	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
-	$title = $Defect->_refObjectName;
-	$header = array('title' => $title, 'type' => 'defect');
+	$header = array('title' => $Defect->_refObjectName, 'type' => 'defect');
 	$item_url = $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID;
 
 	switch ($RALLYME_DISPLAY_VERSION) {
@@ -142,7 +141,7 @@ function ParseDefectPayload($Defect)
 
 		default:
 			$fields = array(
-				'link' => array($title => $item_url),
+				'link' => array($Defect->_refObjectName => $item_url),
 				'id' => $Defect->FormattedID,
 				'owner' => $Defect->Owner->_refObjectName,
 				'project' => $Defect->Project->_refObjectName,
@@ -167,13 +166,28 @@ function ParseDefectPayload($Defect)
 /**
  * Prepares a table of fields attached to a Rally task for display.
  *
- * @param object $Artifact
+ * @param object $Task
  *
  * @return string[]
  */
-function ParseTaskPayload($Artifact)
+function ParseTaskPayload($Task)
 {
+	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
+	$header = array('title' => $Task->_refObjectName, 'type' => 'task');
+	$item_url = $RALLY_BASE_URL . '#/' . basename($Task->Project->_ref) . '/detail/task/' . $Task->ObjectID;
+
+	switch ($RALLYME_DISPLAY_VERSION) {
+
+		case 2:
+			// break;
+
+		default:
+			$fields = CompileRequirementFields($Task, $item_url);
+			break;
+	}
+
+	return array('header' => $header, 'fields' => $fields);
 }
 
 /**
@@ -187,8 +201,7 @@ function ParseStoryPayload($Story)
 {
 	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
-	$title = $Story->_refObjectName;
-	$header = array('title' => $title, 'type' => 'story');
+	$header = array('title' => $Story->_refObjectName, 'type' => 'story');
 	$item_url = $RALLY_BASE_URL . '#/' . basename($Story->Project->_ref) . '/detail/userstory/' . $Story->ObjectID;
 
 	switch ($RALLYME_DISPLAY_VERSION) {
@@ -197,39 +210,57 @@ function ParseStoryPayload($Story)
 			// break;
 
 		default:
-			$parent = NULL;
-			if ($Story->HasParent) {
-				/**
-				 * @todo perform lookup of parent's project ID to make this into
-				 *       a link; we can't assume it's in the same project
-				 */
-				$parent = $Story->Parent->_refObjectName;
-			}
-
-			$fields = array(
-				'link' => array($title => $item_url),
-				'parent' => $parent,
-				'id' => $Story->FormattedID,
-				'owner' => $Story->Owner->_refObjectName,
-				'project' => $Story->Project->_refObjectName,
-				'created' => $Story->_CreatedAt,
-				'estimate' => $Story->PlanEstimate,
-				'state' => $Story->ScheduleState,
-			);
-			if ($Story->DirectChildrenCount > 0) {
-				$fields['children'] = $Story->DirectChildrenCount;
-			}
-			if ($Story->Blocked) {
-				$fields['blocked'] = $Story->BlockedReason;
-			}
-			$fields['description'] = $Story->Description;
-			if ($Story->Attachments->Count > 0) {
-				$fields['attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
-			}
+			$fields = CompileRequirementFields($Story, $item_url);
 			break;
 	}
 
 	return array('header' => $header, 'fields' => $fields);
+}
+
+/**
+ * Prepare a table of field values for stories and tasks.
+ *
+ * Rally lumps stories and tasks together as types of "Hierarchical Requirements"
+ * and so the original version of this script rendered the same fields for both.
+ *
+ * @param object $Requirement
+ * @param string $item_url
+ *
+ * @return string[]
+ */
+function CompileRequirementFields($Requirement, $item_url)
+{
+	$parent = NULL;
+	if ($Requirement->HasParent) {
+		/**
+		 * @todo perform lookup of parent's project ID to make this into
+		 *       a link; we can't assume it's in the same project
+		 */
+		$parent = $Requirement->Parent->_refObjectName;
+	}
+
+	$fields = array(
+		'link' => array($Requirement->_refObjectName => $item_url),
+		'parent' => $parent,
+		'id' => $Requirement->FormattedID,
+		'owner' => $Requirement->Owner->_refObjectName,
+		'project' => $Requirement->Project->_refObjectName,
+		'created' => $Requirement->_CreatedAt,
+		'estimate' => $Requirement->PlanEstimate,
+		'state' => $Requirement->ScheduleState,
+	);
+	if ($Requirement->DirectChildrenCount > 0) {
+		$fields['children'] = $Requirement->DirectChildrenCount;
+	}
+	if ($Requirement->Blocked) {
+		$fields['blocked'] = $Requirement->BlockedReason;
+	}
+	$fields['description'] = $Requirement->Description;
+	if ($Requirement->Attachments->Count > 0) {
+		$fields['attachment'] = GetAttachmentLinks($Requirement->Attachments->_ref);
+	}
+
+	return $fields;
 }
 
 /**
