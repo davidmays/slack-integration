@@ -166,60 +166,6 @@ function ParseDefectPayload($Defect)
 	return array('header' => $header, 'fields' => $fields);
 }
 
-function GetDefectPayload($defect)
-{
-	global $slackCommand, $RALLY_BASE_URL;
-
-	$userlink = BuildUserLink($slackCommand->UserName);
-	$user_message = 'Ok, ' . $userlink . ', here\'s the defect you requested.';
-
-	$color = 'bad';
-
-	$enctitle = urlencode($defect->_refObjectName);
-	$projectid = basename($defect->Project->_ref);
-	$defectid = $defect->ObjectID;
-	$defecturl = $RALLY_BASE_URL . '#/' . $projectid . '/detail/defect/' . $defectid;
-	$linktext = l($enctitle, $defecturl);
-
-	$description = $defect->Description;
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
-	$short_description = TruncateText($clean_description, 300);
-
-	$fields = array(
-		MakeField('link', $linktext, false),
-
-		MakeField('id', $defect->FormattedID, true),
-		MakeField('owner', $defect->Owner->_refObjectName, true),
-
-		MakeField('project', $defect->Project->_refObjectName, true),
-		MakeField('created', $defect->_CreatedAt, true),
-
-		MakeField('submitter', $defect->SubmittedBy->_refObjectName, true),
-		MakeField('state', $defect->State, true),
-
-		MakeField('priority', $defect->Priority, true),
-		MakeField('severity', $defect->Severity, true),
-
-		MakeField('frequency', $defect->c_Frequency, true),
-		MakeField('found in', $defect->FoundInBuild, true),
-
-		MakeField('description', $short_description, false)
-	);
-
-	$firstattachment = null;
-	if ($defect->Attachments->Count > 0) {
-		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
-		$firstattachment = MakeField('attachment', $linktxt, false);
-	}
-
-	if ($firstattachment != null) {
-		array_push($fields, $firstattachment);
-	}
-
-	$payload = array('text' => '', 'attachments' => MakeAttachment($user_message, '', $color, $fields, $defecturl));
-	return (object) $payload;
-}
-
 /**
  * Prepares a table of fields attached to a Rally artifact for display.
  *
