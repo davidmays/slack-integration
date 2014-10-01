@@ -290,7 +290,7 @@ function ReturnArtifactPayload($payload)
 
 			case 'Description':
 				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
-				$value = '\n> ' . strtr($value, ['\n' => '\n> ']);
+				$value = '\n> ' . strtr($value, array('\n' => '\n> '));
 		}
 
 		if ($label) {
