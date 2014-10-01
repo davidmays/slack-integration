@@ -167,7 +167,7 @@ function ParseDefectPayload($Defect)
 }
 
 /**
- * Prepares a table of fields attached to a Rally artifact for display.
+ * Prepares a table of fields attached to a Rally task for display.
  *
  * @param object $Artifact
  *
@@ -181,13 +181,35 @@ function ParseTaskPayload($Artifact)
 /**
  * Prepares a table of fields attached to a Rally user story for display.
  *
- * @param object $Artifact
+ * @param object $Story
  *
  * @return string[]
  */
-function ParseStoryPayload($Artifact)
+function ParseStoryPayload($Story)
 {
+	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
+	$title = $Story->_refObjectName;
+	$header = array('title' => $title);
+	$item_url = $RALLY_BASE_URL . '#/' . basename($Story->Project->_ref) . '/detail/userstory/' . $Story->ObjectID;
+
+	switch ($RALLYME_DISPLAY_VERSION) {
+
+		case 2:
+			break;
+
+		default:
+			$header['type'] = 'story';
+
+			$fields = array(
+			);
+			if ($Story->Attachments->Count > 0) {
+				$fields['attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
+			}
+			break;
+
+	}
+	return array('header' => $header, 'fields' => $fields);
 }
 
 function GetRequirementPayload($ref)
@@ -209,71 +231,51 @@ function GetRequirementPayload($ref)
 	}
 
 	$projecturi = $requirement->Project->_ref;
-
-	$title = $requirement->_refObjectName;
-
 	$ProjectFull = CallAPI($projecturi);
 	$projectid = $ProjectFull->Project->ObjectID;
 	$storyid = $requirement->ObjectID;
-	$description = $requirement->Description;
-	$owner = $requirement->Owner->_refObjectName;
-	$projectName = $requirement->Project->_refObjectName;
-	$itemid = $requirement->FormattedID;
-	$created = $requirement->_CreatedAt;
-	$estimate = $requirement->PlanEstimate;
-	$hasparent = $requirement->HasParent;
-	$childcount = $requirement->DirectChildrenCount;
-	$state = $requirement->ScheduleState;
-	$blocked = $requirement->Blocked;
-	$blockedreason = $requirement->BlockedReason;
-	$ready = $requirement->Ready;
-
-	$attachmentcount = $requirement->Attachments->Count;
-
-	$firstattachment = null;
-	if ($attachmentcount > 0) {
-		$linktxt = GetRallyAttachmentLink($requirement->Attachments->_ref);
-		$firstattachment = MakeField("attachment", $linktxt, false);
-	}
-
-	$parent = null;
-	if ($hasparent) {
-		$parent = $requirement->Parent->_refObjectName;
-	}
-
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
-	$short_description = TruncateText($clean_description, 300);
-
 	$storyuri = "https://rally1.rallydev.com/#/{$projectid}d/detail/userstory/{$storyid}";
+	$title = $requirement->_refObjectName;
 	$enctitle = urlencode($title);
 	$linktext = "<{$storyuri}|{$enctitle}>";
 
-	$dovegray = "#CEC7B8";
+	$parent = null;
+	if ($requirement->HasParent) {
+		$parent = $requirement->Parent->_refObjectName;
+	}
 
 	$fields = array(
 		MakeField("link", $linktext, false),
 		MakeField("parent", $parent, false),
 
-		MakeField("id", $itemid, true),
-		MakeField("owner", $owner, true),
+		MakeField("id", $requirement->FormattedID, true),
+		MakeField("owner", $requirement->Owner->_refObjectName, true),
 
-		MakeField("project", $projectName, true),
-		MakeField("created", $created, true),
+		MakeField("project", $requirement->Project->_refObjectName, true),
+		MakeField("created", $requirement->_CreatedAt, true),
 
-		MakeField("estimate", $estimate, true),
-		MakeField("state", $state, true)
+		MakeField("estimate", $requirement->PlanEstimate, true),
+		MakeField("state", $requirement->ScheduleState, true)
 	);
 
-	if ($childcount > 0) {
-		array_push($fields, MakeField("children", $childcount, true));
+	if ($requirement->DirectChildrenCount > 0) {
+		array_push($fields, MakeField("children", $requirement->DirectChildrenCount, true));
 	}
 
-	if ($blocked) {
-		array_push($fields, MakeField("blocked", $blockedreason, true));
+	if ($requirement->Blocked) {
+		array_push($fields, MakeField("blocked", $requirement->BlockedReason, true));
 	}
 
+	$description = $requirement->Description;
+	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
+	$short_description = TruncateText($clean_description, 300);
 	array_push($fields, MakeField("description", $short_description, false));
 
+	$firstattachment = null;
+	if ($requirement->Attachments->Count > 0) {
+		$linktxt = GetRallyAttachmentLink($requirement->Attachments->_ref);
+		$firstattachment = MakeField("attachment", $linktxt, false);
+	}
 	if ($firstattachment != null) {
 		array_push($fields, $firstattachment);
 	}
@@ -281,6 +283,8 @@ function GetRequirementPayload($ref)
 	global $slackCommand;
 	$userlink = BuildUserLink($slackCommand->UserName);
 	$user_message = "Ok {$userlink}, here's the story you requested.";
+
+	$dovegray = "#CEC7B8";
 
 	$obj = new stdClass;
 	$obj->text = "";
