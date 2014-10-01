@@ -111,7 +111,7 @@ function ParseDefectPayload($Defect)
 	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
 	$title = $Defect->_refObjectName;
-	$header = array('title' => $title);
+	$header = array('title' => $title, 'type' => 'defect');
 	$item_url = $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID;
 
 	switch ($RALLYME_DISPLAY_VERSION) {
@@ -141,8 +141,6 @@ function ParseDefectPayload($Defect)
 			break;
 
 		default:
-			$header['type'] = 'defect';
-
 			$fields = array(
 				'link' => array($title => $item_url),
 				'id' => $Defect->FormattedID,
@@ -161,8 +159,8 @@ function ParseDefectPayload($Defect)
 				$fields['attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
 			}
 			break;
-
 	}
+
 	return array('header' => $header, 'fields' => $fields);
 }
 
@@ -190,25 +188,47 @@ function ParseStoryPayload($Story)
 	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
 
 	$title = $Story->_refObjectName;
-	$header = array('title' => $title);
+	$header = array('title' => $title, 'type' => 'story');
 	$item_url = $RALLY_BASE_URL . '#/' . basename($Story->Project->_ref) . '/detail/userstory/' . $Story->ObjectID;
 
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
-			break;
+			// break;
 
 		default:
-			$header['type'] = 'story';
+			$parent = NULL;
+			if ($Story->HasParent) {
+				/**
+				 * @todo perform lookup of parent's project ID to make this into
+				 *       a link; we can't assume it's in the same project
+				 */
+				$parent = $Story->Parent->_refObjectName;
+			}
 
 			$fields = array(
+				'link' => array($title => $item_url),
+				'parent' => $parent,
+				'id' => $Story->FormattedID,
+				'owner' => $Story->Owner->_refObjectName,
+				'project' => $Story->Project->_refObjectName,
+				'created' => $Story->_CreatedAt,
+				'estimate' => $Story->PlanEstimate,
+				'state' => $Story->ScheduleState,
 			);
+			if ($Story->DirectChildrenCount > 0) {
+				$fields['children'] = $Story->DirectChildrenCount;
+			}
+			if ($Story->Blocked) {
+				$fields['blocked'] = $Story->BlockedReason;
+			}
+			$fields['description'] = $Story->Description;
 			if ($Story->Attachments->Count > 0) {
 				$fields['attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
 			}
 			break;
-
 	}
+
 	return array('header' => $header, 'fields' => $fields);
 }
 
@@ -330,7 +350,10 @@ function SendArtifactPayload($payload)
 	global $config;
 
 	$prextext = ArtifactPretext($payload['header']);
-	$color = 'bad';
+	$color = '#CEC7B8'; //dove gray
+	if ($payload['header']['type'] == 'defect') {
+		$color = 'bad'; //purple
+	}
 
 	$fields = array();
 	foreach ($payload['fields'] as $label => $value) {
@@ -338,6 +361,11 @@ function SendArtifactPayload($payload)
 		switch ($label) {
 
 			case 'Parent':
+			case 'parent':
+				if (is_string($value)) {
+					$short = FALSE;
+					break;
+				}
 			case 'Attachment':
 			case 'link':
 			case 'attachment':
@@ -395,6 +423,7 @@ function ReturnArtifactPayload($payload)
 			case 'Description':
 				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
 				$value = '\n> ' . strtr($value, array('\n' => '\n> '));
+				break;
 		}
 
 		if ($label) {
@@ -413,8 +442,10 @@ function ArtifactPretext($info)
 	global $RALLYME_DISPLAY_VERSION;
 
 	switch ($RALLYME_DISPLAY_VERSION) {
+
 		case 2:
 			return em('Details for ' . $info['item_id'] . ' ' . l($info['title'], $info['item_url']));
+
 		default:
 			return 'Ok, @' . $_REQUEST['user_name'] . ', here\'s the ' . $info['type'] . ' you requested.';
 	}
