@@ -3,27 +3,6 @@
 $RALLY_BASE_URL = 'https://rally1.rallydev.com/';
 $RALLY_API_URL = $RALLY_BASE_URL . 'slm/webservice/v2.0/';
 
-function HandleDefect($id, $channel_name)
-{
-	$defectref = FindDefect($id);
-
-	$payload = GetDefectPayload($defectref);
-
-	$result = postit($channel_name, $payload->text, $payload->attachments);
-
-	if($result=='Invalid channel specified'){
-		die("Sorry, the rallyme command can't post messages to your private chat.\n");
-	}
-
-	if($result!="ok"){
-		print_r($result."\n");
-		print_r(json_encode($payload));
-		print_r("\n");
-		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
-	}
-	return $result;
-}
-
 
 function HandleStory($id, $channel_name)
 {
@@ -190,11 +169,6 @@ function MakeField($title, $value, $short=false)
 	return $attachmentfield;
 }
 
-function getProjectPayload($projectRefUri)
-{
-	$project = CallAPI($projectRefUri);
-}
-
 function CallAPI($uri)
 {
 	global $config;
@@ -203,14 +177,6 @@ function CallAPI($uri)
 	$object = json_decode($json);
 
 	return $object;
-}
-
-
-function GetProjectID($projectref)
-{
-	$ProjectFull = CallAPI($projectref);
-	$projectid = $ProjectFull->Project->ObjectID;
-	return $projectid;
 }
 
 function FindRequirement($id)
