@@ -67,13 +67,14 @@ function SanitizeText($text)
 	return html_entity_decode(strip_tags($text), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
 }
 
-function TruncateText($text, $len)
+function TruncateText($text, $len, $url = '')
 {
 	if (strlen($text) <= $len) {
 		return $text;
 	}
-
-	return substr($text, 0, $len) . '...[MORE]';
+	$text = preg_replace('/\s+?(\S+)?$/', '', substr($text, 0, $len));
+	$more = ($url) ? l('more', $url) : 'more';
+	return  $text . '... ' . em($more);
 }
 
 function l($text, $url)
