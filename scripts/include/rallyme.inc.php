@@ -105,10 +105,9 @@ function _HandleRallyMeErrors($errno, $errstr)
  */
 function ParseDefectPayload($Defect)
 {
-	global $RALLYME_DISPLAY_VERSION;
-
 	$header = CompileArtifactHeader($Defect, 'defect');
 
+	global $RALLYME_DISPLAY_VERSION;
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
@@ -165,10 +164,9 @@ function ParseDefectPayload($Defect)
  */
 function ParseTaskPayload($Task)
 {
-	global $RALLYME_DISPLAY_VERSION;
-
 	$header = CompileArtifactHeader($Task, 'task');
 
+	global $RALLYME_DISPLAY_VERSION;
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
@@ -191,14 +189,31 @@ function ParseTaskPayload($Task)
  */
 function ParseStoryPayload($Story)
 {
-	global $RALLYME_DISPLAY_VERSION;
-
 	$header = CompileArtifactHeader($Story, 'story');
 
+	global $RALLYME_DISPLAY_VERSION;
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
-			// break;
+			$fields = array(
+				'Project' => $Story->Project->_refObjectName,
+				'Created' => $Story->_CreatedAt,
+				'Owner' => $Story->Owner->_refObjectName,
+				'Points' => $Story->PlanEstimate,
+				'State' => $Story->ScheduleState,
+				'Status' => ''
+			);
+			if ($Story->Blocked) {
+				$fields['Status'] = 'Blocked';
+				$fields['Block Description'] = $Story->BlockedReason;
+			} elseif ($Story->Ready) {
+				$fields['Status'] = 'Ready';
+			}
+			$fields['Description'] = $Story->Description;
+			if ($Story->Attachments->Count > 0) {
+				$ret['Attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
+			}
+			break;
 
 		default:
 			$fields = CompileRequirementFields($Story, $header);
