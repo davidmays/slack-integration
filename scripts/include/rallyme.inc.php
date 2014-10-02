@@ -105,17 +105,13 @@ function _HandleRallyMeErrors($errno, $errstr)
  */
 function ParseDefectPayload($Defect)
 {
-	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
+	global $RALLYME_DISPLAY_VERSION;
 
-	$header = array('title' => $Defect->_refObjectName, 'type' => 'defect');
-	$item_url = $RALLY_BASE_URL . '#/' . basename($Defect->Project->_ref) . '/detail/defect/' . $Defect->ObjectID;
+	$header = CompileArtifactHeader($Defect, 'defect');
 
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
-			$header['item_id'] = $Defect->FormattedID;
-			$header['item_url'] = $item_url;
-
 			$state = $Defect->State;
 			if ($state == 'Closed') {
 				$Date = new DateTime($Defect->ClosedDate);
@@ -138,7 +134,7 @@ function ParseDefectPayload($Defect)
 
 		default:
 			$fields = array(
-				'link' => array($Defect->_refObjectName => $item_url),
+				'link' => array($header['title'] => $header['url']),
 				'id' => $Defect->FormattedID,
 				'owner' => $Defect->Owner->_refObjectName,
 				'project' => $Defect->Project->_refObjectName,
@@ -169,10 +165,9 @@ function ParseDefectPayload($Defect)
  */
 function ParseTaskPayload($Task)
 {
-	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
+	global $RALLYME_DISPLAY_VERSION;
 
-	$header = array('title' => $Task->_refObjectName, 'type' => 'task');
-	$item_url = $RALLY_BASE_URL . '#/' . basename($Task->Project->_ref) . '/detail/task/' . $Task->ObjectID;
+	$header = CompileArtifactHeader($Task, 'task');
 
 	switch ($RALLYME_DISPLAY_VERSION) {
 
@@ -180,7 +175,7 @@ function ParseTaskPayload($Task)
 			// break;
 
 		default:
-			$fields = CompileRequirementFields($Task, $item_url);
+			$fields = CompileRequirementFields($Task, $header);
 			break;
 	}
 
@@ -196,10 +191,9 @@ function ParseTaskPayload($Task)
  */
 function ParseStoryPayload($Story)
 {
-	global $RALLYME_DISPLAY_VERSION, $RALLY_BASE_URL;
+	global $RALLYME_DISPLAY_VERSION;
 
-	$header = array('title' => $Story->_refObjectName, 'type' => 'story');
-	$item_url = $RALLY_BASE_URL . '#/' . basename($Story->Project->_ref) . '/detail/userstory/' . $Story->ObjectID;
+	$header = CompileArtifactHeader($Story, 'story');
 
 	switch ($RALLYME_DISPLAY_VERSION) {
 
@@ -207,11 +201,34 @@ function ParseStoryPayload($Story)
 			// break;
 
 		default:
-			$fields = CompileRequirementFields($Story, $item_url);
+			$fields = CompileRequirementFields($Story, $header);
 			break;
 	}
 
 	return array('header' => $header, 'fields' => $fields);
+}
+
+/**
+ * Prepares an array of fields of meta-information common to all artifacts.
+ *
+ * @param object $Artifact
+ * @param string $type
+ *
+ * @return string[]
+ */
+function CompileArtifactHeader($Artifact, $type)
+{
+	global $RALLY_BASE_URL;
+	$path_map = array('defect' => 'defect', 'task' => 'task', 'story' => 'userstory'); //associate human-readable names with Rally URL paths
+
+	$item_url = $RALLY_BASE_URL . '#/' . basename($Artifact->Project->_ref) . '/detail/' . $path_map[$type] . '/' . $Artifact->ObjectID;
+
+	return array(
+		'type' => $type,
+		'id' => $Artifact->FormattedID,
+		'title' => $Artifact->_refObjectName,
+		'url' => $item_url
+	);
 }
 
 /**
@@ -221,11 +238,11 @@ function ParseStoryPayload($Story)
  * and so the original version of this script rendered the same fields for both.
  *
  * @param object $Requirement
- * @param string $item_url
+ * @param string[] $header
  *
  * @return string[]
  */
-function CompileRequirementFields($Requirement, $item_url)
+function CompileRequirementFields($Requirement, $header)
 {
 	$parent = NULL;
 	if ($Requirement->HasParent) {
@@ -237,7 +254,7 @@ function CompileRequirementFields($Requirement, $item_url)
 	}
 
 	$fields = array(
-		'link' => array($Requirement->_refObjectName => $item_url),
+		'link' => array($header['title'] => $header['url']),
 		'parent' => $parent,
 		'id' => $Requirement->FormattedID,
 		'owner' => $Requirement->Owner->_refObjectName,
@@ -322,14 +339,14 @@ function SendArtifactPayload($payload)
 
 			case 'Description':
 			case 'description':
-				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['url']);
 				$short = FALSE;
 				break;
 		}
 		$fields[] = MakeField($label, $value, $short);
 	}
 
-	$attachment = MakeAttachment($prextext, '', $color, $fields, $payload['header']['item_url']);
+	$attachment = MakeAttachment($prextext, '', $color, $fields, $payload['header']['url']);
 
 	return slack_incoming_hook_post_with_attachments(
 		$config['slack']['hook'],
@@ -367,7 +384,7 @@ function ReturnArtifactPayload($payload)
 				break;
 
 			case 'Description':
-				$value = TruncateText(SanitizeText($value), 300, $payload['header']['item_url']);
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['url']);
 				$value = '\n> ' . strtr($value, array('\n' => '\n> '));
 				break;
 		}
@@ -383,16 +400,22 @@ function ReturnArtifactPayload($payload)
 	return PrintJsonResponse($text);
 }
 
-function ArtifactPretext($info)
+/**
+ * Compiles a short message that Rallybot uses to announce query results.
+ *
+ * @param string[] $header
+ *
+ * @return string
+ */
+function ArtifactPretext($header)
 {
 	global $RALLYME_DISPLAY_VERSION;
-
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
-			return em('Details for ' . $info['item_id'] . ' ' . l($info['title'], $info['item_url']));
+			return em('Details for ' . $header['id'] . ' ' . l($header['title'], $header['url']));
 
 		default:
-			return 'Ok, @' . $_REQUEST['user_name'] . ', here\'s the ' . $info['type'] . ' you requested.';
+			return 'Ok, @' . $_REQUEST['user_name'] . ', here\'s the ' . $header['type'] . ' you requested.';
 	}
 }
