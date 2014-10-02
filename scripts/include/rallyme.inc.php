@@ -18,16 +18,14 @@ set_error_handler('_HandleRallyMeErrors', E_USER_ERROR);
  */
 function FetchArtifactPayload($command_text)
 {
-	global $RALLY_API_URL;
+	//assume any words following the formatted id are the name of fields we want to see
+	$field_filter = explode(' ', trim($command_text));
+	$formatted_id = strtoupper(array_shift($field_filter));
 
-	list($formatted_id) = explode(' ', trim($command_text));
-	$formatted_id = strtoupper($formatted_id);
-
-	//handle item
-	$query_url = $RALLY_API_URL;
+	//determine requested artifact type
 	switch (substr($formatted_id, 0, 2)) {
 
-		case 'DE': //find defect
+		case 'DE':
 			$artifact_type = 'Defect';
 			$func = 'ParseDefectPayload';
 			break;
@@ -45,17 +43,31 @@ function FetchArtifactPayload($command_text)
 		default:
 			trigger_error('Sorry, @user, I don\'t know how to handle "' . $command_text . '". You can look up user stories, defects, and tasks by ID, like "DE1234".', E_USER_ERROR);
 	}
-	$query_url .= strtolower($artifact_type) . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
 
+	//compile query string
+	global $RALLY_API_URL;
+	$query_url .= $RALLY_API_URL . $artifact_type . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
+
+	//query Rally
 	$Results = CallAPI($query_url);
 	if ($Results->QueryResult->TotalResultCount == 0) { //get count
 		trigger_error('Sorry, @user, I couldn\'t find ' . $formatted_id, E_USER_ERROR); //not found
 	}
 
-	//get first object from search result
+	//generate payload from first query result
 	foreach ($Results->QueryResult->Results as $Result) {
 		if ($Result->_type == $artifact_type) {
-			return call_user_func($func, $Result);
+			$payload = call_user_func($func, $Result);
+
+			//filter display of artifact fields
+			if (!empty($field_filter)) {
+				if (ctype_upper(key($payload['fields'])[0])) { //match the case of payload field labels
+					$field_filter = array_map('ucfirst', $field_filter);
+				}
+				$payload['fields'] = array_intersect_key($payload['fields'], array_flip($field_filter));
+			}
+
+			return $payload;
 		}
 	}
 	trigger_error('Sorry, @user, your search for "' . $formatted_id . '" was ambiguous.', E_USER_ERROR);
