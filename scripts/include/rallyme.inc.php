@@ -170,7 +170,26 @@ function ParseTaskPayload($Task)
 	switch ($RALLYME_DISPLAY_VERSION) {
 
 		case 2:
-			// break;
+			$fields = array(
+				'Parent' => $Task->WorkProduct->_refObjectName,
+				'Owner' => $Task->Owner->_refObjectName,
+				'Created' => $Task->_CreatedAt,
+				'To Do' => $Task->ToDo,
+				'Actual' => $Task->Actuals,
+				'State' => $Task->State,
+				'Status' => ''
+			);
+			if ($Task->Blocked) {
+				$fields['Status'] = 'Blocked';
+				$fields['Block Description'] = $Task->BlockedReason;
+			} elseif ($Task->Ready) {
+				$fields['Status'] = 'Ready';
+			}
+			$fields['Description'] = $Task->Description;
+			if ($Task->Attachments->Count > 0) {
+				$fields['Attachment'] = GetAttachmentLinks($Task->Attachments->_ref);
+			}
+			break;
 
 		default:
 			$fields = CompileRequirementFields($Task, $header);
@@ -211,7 +230,7 @@ function ParseStoryPayload($Story)
 			}
 			$fields['Description'] = $Story->Description;
 			if ($Story->Attachments->Count > 0) {
-				$ret['Attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
+				$fields['Attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
 			}
 			break;
 
