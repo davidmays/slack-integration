@@ -1,0 +1,8 @@
+application: slack-integration
+version: 1
+runtime: php
+api_version: 1
+
+handlers:
+- url: /(.*\.php)$
+  script: scripts/\1
