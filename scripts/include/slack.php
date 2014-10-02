@@ -124,9 +124,11 @@ function _incoming_hook_post($url, $data)
 			return $result;
 		case 'Invalid channel specified':
 			exit('Unable to post messages to a private chat');
-		default:
-			exit('Unable to send Incoming WebHook message: ' . $reply);
 	}
+	if (strpos($url, 'REPLACE')) {
+		$result = 'Please set your Slack subdomain and incoming webhook token';
+	}
+	exit('Unable to send Incoming WebHook message: ' . $result);
 }
 
 function PrintJsonResponse($payload)
