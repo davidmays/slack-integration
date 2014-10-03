@@ -1,332 +1,467 @@
 <?php
+/**
+ * Responds to queries for information about defects, tasks, and user stories.
+ */
 require('curl.php');
 require('slack.php');
 require('rally.php');
 
-function HandleItem($slackCommand, $rallyFormattedId)
-{
-	$rallyItemType = substr($rallyFormattedId, 0, 2);
+set_error_handler('_HandleRallyMeErrors', E_USER_ERROR);
 
-	switch ($rallyItemType) {
-		case "DE":
-			return HandleDefect($rallyFormattedId, $slackCommand->ChannelName);
-			die;
+/**
+ * Parses artifact ID from request, queries Rally, and selects handler to gather
+ * field values.
+ *
+ * @param string $command_text
+ *
+ * @return string[]
+ */
+function FetchArtifactPayload($command_text)
+{
+	//assume any words following the formatted id are the name of fields we want to see
+	$field_filter = explode(' ', trim($command_text));
+	$formatted_id = strtoupper(array_shift($field_filter));
+
+	//determine requested artifact type
+	switch (substr($formatted_id, 0, 2)) {
+
+		case 'DE':
+			$artifact_type = 'Defect';
+			$func = 'ParseDefectPayload';
 			break;
-		case "US":
-		case "TA":
-			return HandleStory($rallyFormattedId, $slackCommand->ChannelName);
-			die;
+
+		case 'TA':
+			$artifact_type = 'Task';
+			$func = 'ParseTaskPayload';
 			break;
+
+		case 'US':
+			$artifact_type = 'HierarchicalRequirement';
+			$func = 'ParseStoryPayload';
+			break;
+
 		default:
-			print_r("Sorry, I don't know what kind of rally object {$rallyFormattedId} is. If you need rallyme to work with these, buy <https://cim.slack.com/team/tdm|@tdm> a :beer:. I hear he likes IPAs.");
-			die;
+			trigger_error('Sorry, @user, I don\'t know how to handle "' . $command_text . '". You can look up user stories, defects, and tasks by ID, like "DE1234".', E_USER_ERROR);
+	}
+
+	//compile query string
+	global $RALLY_API_URL;
+	$query_url .= $RALLY_API_URL . $artifact_type . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
+
+	//query Rally
+	$Results = CallAPI($query_url);
+	if ($Results->QueryResult->TotalResultCount == 0) { //get count
+		trigger_error('Sorry, @user, I couldn\'t find ' . $formatted_id, E_USER_ERROR); //not found
+	}
+
+	//generate payload from first query result
+	foreach ($Results->QueryResult->Results as $Result) {
+		if ($Result->_type == $artifact_type) {
+			$payload = call_user_func($func, $Result);
+
+			//filter display of artifact fields
+			if (!empty($field_filter)) {
+				if (ctype_upper(key($payload['fields'])[0])) { //match the case of payload field labels
+					$field_filter = array_map('ucfirst', $field_filter);
+				}
+				$payload['fields'] = array_intersect_key($payload['fields'], array_flip($field_filter));
+			}
+
+			return $payload;
+		}
+	}
+	trigger_error('Sorry, @user, your search for "' . $formatted_id . '" was ambiguous.', E_USER_ERROR);
+}
+
+/**
+ * Notifies Slack users of errors either via an incoming webhook or in the body
+ * of the HTTP response.
+ *
+ * @param  int $errno
+ * @param  string $errstr
+ *
+ * @return void
+ */
+function _HandleRallyMeErrors($errno, $errstr)
+{
+	global $config;
+
+	//assume at-mentions are linkified over either transmission channel
+	$user = '@' . $_REQUEST['user_name'];
+	$errstr = strtr($errstr, array('@user' => $user));
+
+	if (isSlashCommand()) {
+		//use an incoming webhook to report error
+		slack_incoming_hook_post(
+			$config['slack']['hook'],
+			$config['rally']['botname'],
+			$_REQUEST['channel_name'],
+			$config['rally']['boticon'],
+			NULL,
+			$errstr
+		);
+	} else {
+		//otherwise return Slack-formatted JSON in the response body
+		PrintJsonResponse($errstr);
+	}
+
+	exit();
+}
+
+/**
+ * Prepares a table of fields attached to a Rally defect for display.
+ *
+ * @param object $Defect
+ *
+ * @return string[]
+ */
+function ParseDefectPayload($Defect)
+{
+	$header = CompileArtifactHeader($Defect, 'defect');
+
+	global $RALLYME_DISPLAY_VERSION;
+	switch ($RALLYME_DISPLAY_VERSION) {
+
+		case 2:
+			$state = $Defect->State;
+			if ($state == 'Closed') {
+				$Date = new DateTime($Defect->ClosedDate);
+				$state .= ' ' . $Date->format('M j');
+			}
+
+			$fields = array(
+				'Creator' => $Defect->SubmittedBy->_refObjectName,
+				'Created' => $Defect->_CreatedAt,
+				'Owner' => $Defect->Owner->_refObjectName,
+				'State' => $state,
+				'Priority' => $Defect->Priority,
+				'Severity' => $Defect->Severity,
+				'Description' => $Defect->Description,
+			);
+			if ($Defect->Attachments->Count > 0) {
+				$fields['Attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
+			}
+			break;
+
+		default:
+			$fields = array(
+				'link' => array($header['title'] => $header['url']),
+				'id' => $Defect->FormattedID,
+				'owner' => $Defect->Owner->_refObjectName,
+				'project' => $Defect->Project->_refObjectName,
+				'created' => $Defect->_CreatedAt,
+				'submitter' => $Defect->SubmittedBy->_refObjectName,
+				'state' => $Defect->State,
+				'priority' => $Defect->Priority,
+				'severity' => $Defect->Severity,
+				'frequency' => $Defect->c_Frequency,
+				'found in' => $Defect->FoundInBuild,
+				'description' => $Defect->Description,
+			);
+			if ($Defect->Attachments->Count > 0) {
+				$fields['attachment'] = GetAttachmentLinks($Defect->Attachments->_ref);
+			}
 			break;
 	}
+
+	return array('header' => $header, 'fields' => $fields);
 }
 
-function HandleDefect($id, $channel_name)
+/**
+ * Prepares a table of fields attached to a Rally task for display.
+ *
+ * @param object $Task
+ *
+ * @return string[]
+ */
+function ParseTaskPayload($Task)
 {
-	$defectref = FindDefect($id);
+	$header = CompileArtifactHeader($Task, 'task');
 
-	$payload = GetDefectPayload($defectref);
+	global $RALLYME_DISPLAY_VERSION;
+	switch ($RALLYME_DISPLAY_VERSION) {
 
-	$result = postit($channel_name, $payload->text, $payload->attachments);
+		case 2:
+			$fields = array(
+				'Parent' => $Task->WorkProduct->_refObjectName,
+				'Owner' => $Task->Owner->_refObjectName,
+				'Created' => $Task->_CreatedAt,
+				'To Do' => $Task->ToDo,
+				'Actual' => $Task->Actuals,
+				'State' => $Task->State,
+				'Status' => ''
+			);
+			if ($Task->Blocked) {
+				$fields['Status'] = 'Blocked';
+				$fields['Block Description'] = $Task->BlockedReason;
+			} elseif ($Task->Ready) {
+				$fields['Status'] = 'Ready';
+			}
+			$fields['Description'] = $Task->Description;
+			if ($Task->Attachments->Count > 0) {
+				$fields['Attachment'] = GetAttachmentLinks($Task->Attachments->_ref);
+			}
+			break;
 
-	if ($result == 'Invalid channel specified') {
-		die("Sorry, the rallyme command can't post messages to your private chat.\n");
+		default:
+			$fields = CompileRequirementFields($Task, $header);
+			break;
 	}
 
-	if ($result != "ok") {
-		print_r($result . "\n");
-		print_r(json_encode($payload));
-		print_r("\n");
-		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
-	}
-	return $result;
+	return array('header' => $header, 'fields' => $fields);
 }
 
-function FindDefect($id)
+/**
+ * Prepares a table of fields attached to a Rally user story for display.
+ *
+ * @param object $Story
+ *
+ * @return string[]
+ */
+function ParseStoryPayload($Story)
 {
-	$query = GetDefectQueryUri($id);
-	$searchresult = CallAPI($query);
+	$header = CompileArtifactHeader($Story, 'story');
 
-	$count = GetCount($searchresult);
-	if ($count == 0)
-		NotFound($id);
+	global $RALLYME_DISPLAY_VERSION;
+	switch ($RALLYME_DISPLAY_VERSION) {
 
-	return GetFirstObjectFromSearchResult("Defect", $searchresult);
-}
+		case 2:
+			$fields = array(
+				'Project' => $Story->Project->_refObjectName,
+				'Created' => $Story->_CreatedAt,
+				'Owner' => $Story->Owner->_refObjectName,
+				'Points' => $Story->PlanEstimate,
+				'State' => $Story->ScheduleState,
+				'Status' => ''
+			);
+			if ($Story->Blocked) {
+				$fields['Status'] = 'Blocked';
+				$fields['Block Description'] = $Story->BlockedReason;
+			} elseif ($Story->Ready) {
+				$fields['Status'] = 'Ready';
+			}
+			$fields['Description'] = $Story->Description;
+			if ($Story->Attachments->Count > 0) {
+				$fields['Attachment'] = GetAttachmentLinks($Story->Attachments->_ref);
+			}
+			break;
 
-function GetDefectQueryUri($id)
-{
-	$defectquery = "https://rally1.rallydev.com/slm/webservice/v2.0/defect?query=(FormattedID%20=%20[[ID]])";
-	return str_replace("[[ID]]", $id, $defectquery);
-}
-
-function GetDefectPayload($ref)
-{
-	global $show, $requesting_user_name;
-
-	$object = CallAPI($ref);
-
-	$defect = $object->Defect;
-
-	$projecturi = $defect->Project->_ref;
-
-	$title = $defect->_refObjectName;
-	$description = $defect->Description;
-	$owner = $defect->Owner->_refObjectName;
-	$submitter = $defect->SubmittedBy->_refObjectName;
-	$project = $object->Project->_refObjectName;
-	$created = $defect->_CreatedAt;
-	$state = $defect->State;
-	$priority = $defect->Priority;
-	$severity = $defect->Severity;
-	$frequency = $defect->c_Frequency;
-	$foundinbuild = $defect->FoundInBuild;
-
-	$short_description = TruncateText(strip_tags($description), 200);
-
-	$ProjectFull = CallAPI($projecturi);
-	$projectid = $ProjectFull->Project->ObjectID;
-	$defectid = $defect->ObjectID;
-	$projectName = $defect->Project->_refObjectName;
-	$itemid = $defect->FormattedID;
-
-	$attachmentcount = $defect->Attachments->Count;
-
-	$firstattachment = null;
-	if ($attachmentcount > 0) {
-		$linktxt = GetRallyAttachmentLink($defect->Attachments->_ref);
-		$firstattachment = MakeField("attachment", $linktxt, false);
+		default:
+			$fields = CompileRequirementFields($Story, $header);
+			break;
 	}
 
-	$defecturi = "https://rally1.rallydev.com/#/{$projectid}d/detail/defect/{$defectid}";
+	return array('header' => $header, 'fields' => $fields);
+}
 
-	$enctitle = urlencode($title);
-	$linktext = "<{$defecturi}|{$enctitle}>";
+/**
+ * Prepares an array of fields of meta-information common to all artifacts.
+ *
+ * @param object $Artifact
+ * @param string $type
+ *
+ * @return string[]
+ */
+function CompileArtifactHeader($Artifact, $type)
+{
+	global $RALLY_HOST_URL;
+	$path_map = array('defect' => 'defect', 'task' => 'task', 'story' => 'userstory'); //associate human-readable names with Rally URL paths
 
-	$color = "bad";
+	$item_url = $RALLY_HOST_URL . '#/' . basename($Artifact->Project->_ref) . '/detail/' . $path_map[$type] . '/' . $Artifact->ObjectID;
 
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
-	$short_description = TruncateText($clean_description, 300);
+	return array(
+		'type' => $type,
+		'id' => $Artifact->FormattedID,
+		'title' => $Artifact->_refObjectName,
+		'url' => $item_url
+	);
+}
+
+/**
+ * Prepare a table of field values for stories and tasks.
+ *
+ * Rally lumps stories and tasks together as types of "Hierarchical Requirements"
+ * and so the original version of this script rendered the same fields for both.
+ *
+ * @param object $Requirement
+ * @param string[] $header
+ *
+ * @return string[]
+ */
+function CompileRequirementFields($Requirement, $header)
+{
+	$parent = NULL;
+	if ($Requirement->HasParent) {
+		/**
+		 * @todo perform lookup of parent's project ID to make this into
+		 *       a link; we can't assume it's in the same project
+		 */
+		$parent = $Requirement->Parent->_refObjectName;
+	}
 
 	$fields = array(
-		MakeField("link", $linktext, false),
-
-		MakeField("id", $itemid, true),
-		MakeField("owner", $owner, true),
-
-		MakeField("project", $projectName, true),
-		MakeField("created", $created, true),
-
-		MakeField("submitter", $submitter, true),
-		MakeField("state", $state, true),
-
-		MakeField("priority", $priority, true),
-		MakeField("severity", $severity, true),
-
-		MakeField("frequency", $frequency, true),
-		MakeField("found in", $foundinbuild, true),
-
-		MakeField("description", $short_description, false)
+		'link' => array($header['title'] => $header['url']),
+		'parent' => $parent,
+		'id' => $Requirement->FormattedID,
+		'owner' => $Requirement->Owner->_refObjectName,
+		'project' => $Requirement->Project->_refObjectName,
+		'created' => $Requirement->_CreatedAt,
+		'estimate' => $Requirement->PlanEstimate,
+		'state' => $Requirement->ScheduleState,
 	);
-
-	if ($firstattachment != null)
-		array_push($fields, $firstattachment);
-
-	global $slackCommand;
-
-	$userlink = BuildUserLink($slackCommand->UserName);
-	$user_message = "Ok, {$userlink}, here's the defect you requested.";
-
-	$obj = new stdClass;
-	$obj->text = "";
-	$obj->attachments = MakeAttachment($user_message, "", $color, $fields, $storyuri);
-	return $obj;
-}
-
-function HandleStory($id, $channel_name)
-{
-	$ref = FindRequirement($id);
-
-	$payload = GetRequirementPayload($ref);
-
-	$result = postit($channel_name, $payload->text, $payload->attachments);
-
-	if ($result == 'Invalid channel specified') {
-		die("Sorry, the rallyme command can't post messages to your private chat.\n");
+	if ($Requirement->DirectChildrenCount > 0) {
+		$fields['children'] = $Requirement->DirectChildrenCount;
+	}
+	if ($Requirement->Blocked) {
+		$fields['blocked'] = $Requirement->BlockedReason;
+	}
+	$fields['description'] = $Requirement->Description;
+	if ($Requirement->Attachments->Count > 0) {
+		$fields['attachment'] = GetAttachmentLinks($Requirement->Attachments->_ref);
 	}
 
-	if ($result != "ok") {
-		print_r($result . "\n");
-		print_r(json_encode($payload));
-		print_r("\n");
-		die("Apparently the Rallyme script is having a problem. Ask <https://cim.slack.com/team/tdm|@tdm> about it. :frowning:");
-	}
-	return $result;
+	return $fields;
 }
 
-function FindRequirement($id)
+/**
+ * Returns an array of file links listed in a Rally attachment object.
+ *
+ * @param string $attachment_ref
+ *
+ * @return string[]
+ */
+function GetAttachmentLinks($attachment_ref)
 {
-	$query = GetArtifactQueryUri($id);
+	global $RALLY_HOST_URL;
+	$url = $RALLY_HOST_URL . 'slm/attachment/';
+	$links = array();
 
-	$searchresult = CallAPI($query);
-	//	print_r($searchresult);die;
+	$Attachments = CallAPI($attachment_ref);
 
-	$count = GetCount($searchresult);
-	if ($count == 0)
-		NotFound($id);
-
-	return GetFirstObjectFromSearchResult("HierarchicalRequirement", $searchresult);
-}
-
-function GetArtifactQueryUri($id)
-{
-	$artifactquery = "https://rally1.rallydev.com/slm/webservice/v2.0/artifact?query=(FormattedID%20=%20[[ID]])";
-	return str_replace("[[ID]]", $id, $artifactquery);
-}
-
-function GetRequirementPayload($ref)
-{
-	$object = CallAPI($ref);
-
-	$requirement = null;
-
-	if ($object->HierarchicalRequirement) {
-		$requirement = $object->HierarchicalRequirement;
-	} elseif ($object->Task) {
-		$requirement = $object->Task;
-	} else {
-		$class = get_class($object);
-		global $slackCommand;
-		$userlink = BuildUserLink($slackCommand->UserName);
-		print_r("Sorry {$userlink}, I can't handle a {$class} yet. I'll let @tdm know about it.");
-		die;
+	foreach ($Attachments->QueryResult->Results as $Attachment) {
+		$filename = $Attachment->_refObjectName;
+		$link_url = $url . $Attachment->ObjectID . '/' . urlencode($filename);
+		$links[$filename] = $link_url;
 	}
 
-	$projecturi = $requirement->Project->_ref;
+	return $links;
+}
 
-	$title = $requirement->_refObjectName;
+/**
+ * Posts artifact details to a Slack channel via an incoming webhook.
+ *
+ * @param string[] $payload
+ *
+ * @return mixed
+ */
+function SendArtifactPayload($payload)
+{
+	global $config;
 
-	$ProjectFull = CallAPI($projecturi);
-	$projectid = $ProjectFull->Project->ObjectID;
-	$storyid = $requirement->ObjectID;
-	$description = $requirement->Description;
-	$owner = $requirement->Owner->_refObjectName;
-	$projectName = $requirement->Project->_refObjectName;
-	$itemid = $requirement->FormattedID;
-	$created = $requirement->_CreatedAt;
-	$estimate = $requirement->PlanEstimate;
-	$hasparent = $requirement->HasParent;
-	$childcount = $requirement->DirectChildrenCount;
-	$state = $requirement->ScheduleState;
-	$blocked = $requirement->Blocked;
-	$blockedreason = $requirement->BlockedReason;
-	$ready = $requirement->Ready;
-
-	$attachmentcount = $requirement->Attachments->Count;
-
-	$firstattachment = null;
-	if ($attachmentcount > 0) {
-		$linktxt = GetRallyAttachmentLink($requirement->Attachments->_ref);
-		$firstattachment = MakeField("attachment", $linktxt, false);
+	$prextext = ArtifactPretext($payload['header']);
+	$color = '#CEC7B8'; //dove gray
+	if ($payload['header']['type'] == 'defect') {
+		$color = 'bad'; //purple
 	}
 
-	$parent = null;
-	if ($hasparent)
-		$parent = $requirement->Parent->_refObjectName;
+	$fields = array();
+	foreach ($payload['fields'] as $label => $value) {
+		$short = TRUE;
+		switch ($label) {
 
-	$clean_description = html_entity_decode(strip_tags($description), ENT_HTML401 | ENT_COMPAT, 'UTF-8');
-	$short_description = TruncateText($clean_description, 300);
+			case 'Parent':
+			case 'parent':
+				if (is_string($value)) {
+					$short = FALSE;
+					break;
+				}
+			case 'Attachment':
+			case 'link':
+			case 'attachment':
+				$link_url = reset($value);
+				$value = l(urlencode(key($value)), $link_url);
+				$short = FALSE;
+				break;
 
-	$storyuri = "https://rally1.rallydev.com/#/{$projectid}d/detail/userstory/{$storyid}";
-	$enctitle = urlencode($title);
-	$linktext = "<{$storyuri}|{$enctitle}>";
+			case 'Description':
+			case 'description':
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['url']);
+				$short = FALSE;
+				break;
+		}
+		$fields[] = MakeField($label, $value, $short);
+	}
 
-	$dovegray = "#CEC7B8";
+	$attachment = MakeAttachment($prextext, '', $color, $fields, $payload['header']['url']);
 
-	$fields = array(
-		MakeField("link", $linktext, false),
-		MakeField("parent", $parent, false),
-
-		MakeField("id", $itemid, true),
-		MakeField("owner", $owner, true),
-
-		MakeField("project", $projectName, true),
-		MakeField("created", $created, true),
-
-		MakeField("estimate", $estimate, true),
-		MakeField("state", $state, true)
+	return slack_incoming_hook_post_with_attachments(
+		$config['slack']['hook'],
+		$config['rally']['botname'],
+		$_REQUEST['channel_name'],
+		$config['rally']['boticon'],
+		'',
+		$attachment
 	);
-
-	if ($childcount > 0)
-		array_push($fields, MakeField("children", $childcount, true));
-
-	if ($blocked)
-		array_push($fields, MakeField("blocked", $blockedreason, true));
-
-	array_push($fields, MakeField("description", $short_description, false));
-
-	if ($firstattachment != null)
-		array_push($fields, $firstattachment);
-
-	global $slackCommand;
-	$userlink = BuildUserLink($slackCommand->UserName);
-	$user_message = "Ok {$userlink}, here's the story you requested.";
-
-	$obj = new stdClass;
-	$obj->text = "";
-	$obj->attachments = MakeAttachment($user_message, "", $dovegray, $fields, $storyuri);
-	//	print_r(json_encode($obj));die;
-
-	return $obj;
 }
 
-function GetCount($searchresult)
+/**
+ * Returns artifact details as Slack-formatted JSON in the body of the response.
+ *
+ * @param string[] $payload
+ *
+ * @return mixed
+ */
+function ReturnArtifactPayload($payload)
 {
-	return $searchresult->QueryResult->TotalResultCount;
-}
+	$text = ArtifactPretext($payload['header']);
 
-function NotFound($id)
-{
-	global $slackCommand;
-	$userlink = BuildUserLink($slackCommand->UserName);
-	print_r("Sorry {$userlink}, I couldn't find {$id}");
-	die;
-}
+	foreach ($payload['fields'] as $label => $value) {
+		switch ($label) {
 
-function GetFirstObjectFromSearchResult($objectName, $result)
-{
-	foreach ($result->QueryResult->Results as $result) {
-		if ($result->_type == $objectName)
-			return $result->_ref;
+			case 'Attachment':
+			case 'Parent':
+				$link_url = reset($value);
+				$value = l(key($value), $link_url);
+				break;
+
+			case 'Block Reason':
+				$label = '';
+				$value = SanitizeText($value);
+				break;
+
+			case 'Description':
+				$value = TruncateText(SanitizeText($value), 300, $payload['header']['url']);
+				$value = '\n> ' . strtr($value, array('\n' => '\n> '));
+				break;
+		}
+
+		if ($label) {
+			$label .= ':';
+			$text .= '\n`' . str_pad($label, 15) . '`\t' . $value;
+		} else {
+			$text .= '\n>' . $value;
+		}
 	}
-	global $slackCommand;
-	$userlink = BuildUserLink($slackCommand->UserName);
-	print_r("Sorry @{$userlink}, your search for '{$slackCommand->Text}' was ambiguous.:\n");
-	print_r("Here's what Rally told me:\n");
-	print_r($result);
-	die;
+
+	return PrintJsonResponse($text);
 }
 
-function GetRallyAttachmentLink($attachmentRef)
+/**
+ * Compiles a short message that Rallybot uses to announce query results.
+ *
+ * @param string[] $header
+ *
+ * @return string
+ */
+function ArtifactPretext($header)
 {
-	$attachments = CallAPI($attachmentRef);
-	$firstattachment = $attachments->QueryResult->Results[0];
+	global $RALLYME_DISPLAY_VERSION;
+	switch ($RALLYME_DISPLAY_VERSION) {
 
-	$attachmentname = $firstattachment->_refObjectName;
-	$encodedattachmentname = urlencode($attachmentname);
-	$id = $firstattachment->ObjectID;
+		case 2:
+			return em('Details for ' . $header['id'] . ' ' . l($header['title'], $header['url']));
 
-	$uri = "https://rally1.rallydev.com/slm/attachment/{$id}/{$encodedattachmentname}";
-	$linktxt = "<{$uri}|{$attachmentname}>";
-	return $linktxt;
-}
-
-function postit($channel_name, $payload, $attachments)
-{
-	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON, $slackCommand;
-
-	return slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $slackCommand->ChannelName, $RALLYBOT_ICON, $payload, $attachments);
+		default:
+			return 'Ok, @' . $_REQUEST['user_name'] . ', here\'s the ' . $header['type'] . ' you requested.';
+	}
 }

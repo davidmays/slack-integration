@@ -5,15 +5,15 @@ require('rally.php');
 
 function FetchLatestRallyComments($since)
 {
-	global $RALLY_URL, $RALLY_PROJECT_ID;
+	global $RALLY_HOST_URL, $RALLYCRON_PROJECT_ID;
 
-	$api_url = $RALLY_URL . 'slm/webservice/v2.0/';
-	$query_url = $api_url . 'conversationpost?query=((Artifact.Project.ObjectID+%3D+' . $RALLY_PROJECT_ID . ')AND(CreationDate+>+' . $since . '))&fetch=Artifact,Text,User&order=CreationDate+asc';
+	$api_url = $RALLY_HOST_URL . 'slm/webservice/v2.0/';
+	$query_url = $api_url . 'conversationpost?query=((Artifact.Project.ObjectID+%3D+' . $RALLYCRON_PROJECT_ID . ')AND(CreationDate+>+' . $since . '))&fetch=Artifact,Text,User&order=CreationDate+asc';
 
 	$results = CallAPI($query_url);
 	$results = $results->QueryResult->Results;
 
-	$project_url = $RALLY_URL . '#/' . $RALLY_PROJECT_ID;
+	$project_url = $RALLY_HOST_URL . '#/' . $RALLYCRON_PROJECT_ID;
 
 	$items = array();
 	foreach ($results as $Result) {
@@ -43,7 +43,7 @@ function FetchLatestRallyComments($since)
 
 function SendRallyCommentNotifications($items)
 {
-	global $SLACK_CHANNEL_FOR_RALLY_PROJECT;
+	global $SLACK_INCOMING_HOOK_URL, $RALLYCRON_CHANNEL, $RALLYBOT_NAME, $RALLYBOT_ICON;
 	$success = TRUE;
 
 	foreach ($items as $item) {
@@ -62,7 +62,14 @@ function SendRallyCommentNotifications($items)
 		$fallback = $item['user'] . ' commented on ' . $slug;
 
 		$message = MakeAttachment($pretext, $text, $color, $fields, $fallback);
-		$success = SendIncomingWebHookMessage($SLACK_CHANNEL_FOR_RALLY_PROJECT, '', $message) && $success;
+		$success = slack_incoming_hook_post_with_attachments(
+			$SLACK_INCOMING_HOOK_URL,
+			$RALLYBOT_NAME,
+			$RALLYCRON_CHANNEL,
+			$RALLYBOT_ICON,
+			'',
+			$message
+		) && $success;
 	}
 
 	return $success;
@@ -70,15 +77,15 @@ function SendRallyCommentNotifications($items)
 
 function FetchUpdatedRallyArtifacts($since)
 {
-	global $RALLY_URL, $RALLY_PROJECT_ID, $RALLY_TIMESTAMP_FORMAT;
+	global $RALLY_HOST_URL, $RALLYCRON_PROJECT_ID, $RALLY_TIMESTAMP_FORMAT;
 
-	$api_url = $RALLY_URL . 'slm/webservice/v2.0/';
-	$query_url = $api_url . 'artifact?query=((Project.ObjectID+%3D+' . $RALLY_PROJECT_ID . ')AND(LastUpdateDate+>+' . $since . '))&fetch=CreationDate,FormattedID,LastUpdateDate,Owner,Ready,RevisionHistory,ScheduleState,SubmittedBy&order=LastUpdateDate+asc&pagesize=200';
+	$api_url = $RALLY_HOST_URL . 'slm/webservice/v2.0/';
+	$query_url = $api_url . 'artifact?query=((Project.ObjectID+%3D+' . $RALLYCRON_PROJECT_ID . ')AND(LastUpdateDate+>+' . $since . '))&fetch=CreationDate,FormattedID,LastUpdateDate,Owner,Ready,RevisionHistory,ScheduleState,SubmittedBy&order=LastUpdateDate+asc&pagesize=200';
 
 	$results = CallAPI($query_url);
 	$results = $results->QueryResult->Results;
 
-	$project_url = $RALLY_URL . '#/' . $RALLY_PROJECT_ID;
+	$project_url = $RALLY_HOST_URL . '#/' . $RALLYCRON_PROJECT_ID;
 
 	$items = array();
 	foreach ($results as $Artifact) {
@@ -174,7 +181,7 @@ function FetchUpdatedRallyArtifacts($since)
 
 function SendRallyUpdateNotifications($items)
 {
-	global $SLACK_CHANNEL_FOR_RALLY_PROJECT;
+	global $SLACK_INCOMING_HOOK_URL, $RALLYCRON_CHANNEL, $RALLYBOT_NAME, $RALLYBOT_ICON;
 	$success = TRUE;
 
 	foreach ($items as $item) {
@@ -214,24 +221,15 @@ function SendRallyUpdateNotifications($items)
 		}
 
 		$message = MakeAttachment($pretext, $text, $color, $fields, $fallback);
-		$success = sendIncomingWebHookMessage($SLACK_CHANNEL_FOR_RALLY_PROJECT, '', $message) && $success;
+		$success = slack_incoming_hook_post_with_attachments(
+			$SLACK_INCOMING_HOOK_URL,
+			$RALLYBOT_NAME,
+			$RALLYCRON_CHANNEL,
+			$RALLYBOT_ICON,
+			'',
+			$message
+		) && $success;
 	}
 
-	return $success;
-}
-
-function SendIncomingWebHookMessage($channel, $payload, $attachments)
-{
-	global $SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $RALLYBOT_ICON;
-
-	//allow bot to display formatted attachment text
-	$attachments->mrkdwn_in = ['pretext', 'text', 'title', 'fields'];
-
-	$reply = slack_incoming_hook_post_with_attachments($SLACK_INCOMING_HOOK_URL, $RALLYBOT_NAME, $channel, $RALLYBOT_ICON, $payload, $attachments);
-
-	$success = ($reply == 'ok');
-	if (!$success) {
-		trigger_error('Unable to send Incoming WebHook message: ' . $reply);
-	}
 	return $success;
 }
