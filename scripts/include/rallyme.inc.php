@@ -45,8 +45,8 @@ function FetchArtifactPayload($command_text)
 	}
 
 	//compile query string
-	global $RALLY_API_URL;
-	$query_url .= $RALLY_API_URL . $artifact_type . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
+	global $config;
+	$query_url = $config['rally']['apiurl'] . $artifact_type . '?query=(FormattedID+%3D+' . $formatted_id . ')&fetch=true';
 
 	//query Rally
 	$Results = CallAPI($query_url);
@@ -119,8 +119,8 @@ function ParseDefectPayload($Defect)
 {
 	$header = CompileArtifactHeader($Defect, 'defect');
 
-	global $RALLYME_DISPLAY_VERSION;
-	switch ($RALLYME_DISPLAY_VERSION) {
+	global $config;
+	switch ($config['rallyme']['version']) {
 
 		case 2:
 			$state = $Defect->State;
@@ -178,8 +178,8 @@ function ParseTaskPayload($Task)
 {
 	$header = CompileArtifactHeader($Task, 'task');
 
-	global $RALLYME_DISPLAY_VERSION;
-	switch ($RALLYME_DISPLAY_VERSION) {
+	global $config;
+	switch ($config['rallyme']['version']) {
 
 		case 2:
 			$fields = array(
@@ -222,8 +222,8 @@ function ParseStoryPayload($Story)
 {
 	$header = CompileArtifactHeader($Story, 'story');
 
-	global $RALLYME_DISPLAY_VERSION;
-	switch ($RALLYME_DISPLAY_VERSION) {
+	global $config;
+	switch ($config['rallyme']['version']) {
 
 		case 2:
 			$fields = array(
@@ -264,10 +264,10 @@ function ParseStoryPayload($Story)
  */
 function CompileArtifactHeader($Artifact, $type)
 {
-	global $RALLY_BASE_URL;
+	global $config;
 	$path_map = array('defect' => 'defect', 'task' => 'task', 'story' => 'userstory'); //associate human-readable names with Rally URL paths
 
-	$item_url = $RALLY_BASE_URL . '#/' . basename($Artifact->Project->_ref) . '/detail/' . $path_map[$type] . '/' . $Artifact->ObjectID;
+	$item_url = $config['rally']['hosturl'] . '#/' . basename($Artifact->Project->_ref) . '/detail/' . $path_map[$type] . '/' . $Artifact->ObjectID;
 
 	return array(
 		'type' => $type,
@@ -332,8 +332,8 @@ function CompileRequirementFields($Requirement, $header)
  */
 function GetAttachmentLinks($attachment_ref)
 {
-	global $RALLY_BASE_URL;
-	$url = $RALLY_BASE_URL . 'slm/attachment/';
+	global $config;
+	$url = $config['rally']['hosturl'] . 'slm/attachment/';
 	$links = array();
 
 	$Attachments = CallAPI($attachment_ref);
@@ -455,8 +455,8 @@ function ReturnArtifactPayload($payload)
  */
 function ArtifactPretext($header)
 {
-	global $RALLYME_DISPLAY_VERSION;
-	switch ($RALLYME_DISPLAY_VERSION) {
+	global $config;
+	switch ($config['rallyme']['version']) {
 
 		case 2:
 			return em('Details for ' . $header['id'] . ' ' . l($header['title'], $header['url']));

@@ -36,9 +36,9 @@ function BuildSlashCommand($request)
  */
 function isValidOutgoingHookRequest()
 {
-	global $SLACK_OUTGOING_HOOK_TOKEN;
+	global $config;
 
-	return isset($_REQUEST['token']) && $_REQUEST['token'] == $SLACK_OUTGOING_HOOK_TOKEN;
+	return isset($_REQUEST['token']) && $_REQUEST['token'] == $config['slack']['outgoinghooktoken'];
 }
 
 /**
@@ -55,9 +55,9 @@ function isSlashCommand()
 
 function BuildUserLink($username)
 {
-	global $SLACK_SUBDOMAIN;
+	global $config;
 
-	$userlink = '<https://' . $SLACK_SUBDOMAIN . '.slack.com/team/' . $username . '|@' . $username . '>';
+	$userlink = '<https://' . $config['slack']['subdomain'] . '.slack.com/team/' . $username . '|@' . $username . '>';
 	return $userlink;
 }
 

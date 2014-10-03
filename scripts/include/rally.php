@@ -1,7 +1,5 @@
 <?
 //rally commands
-$RALLY_BASE_URL = 'https://rally1.rallydev.com/';
-$RALLY_API_URL = $RALLY_BASE_URL . 'slm/webservice/v2.0/';
 
 function CallAPI($uri)
 {
