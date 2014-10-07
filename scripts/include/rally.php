@@ -1,6 +1,7 @@
 <?
 //rally commands
-
+$RALLY_URL = 'https://rally1.rallydev.com/';
+$RALLY_TIMESTAMP_FORMAT = 'Y-m-d\TH:i:s.u\Z';
 
 function HandleItem($slackCommand, $rallyFormattedId)
 {
@@ -53,11 +54,11 @@ function HandleStory($id, $channel_name)
 	$payload = GetRequirementPayload($ref);
 
 	$result = postit($channel_name, $payload->text, $payload->attachments);
-	
+
 	if($result=='Invalid channel specified'){
 	    die("Sorry, the rallyme command can't post messages to your private chat.\n");
 	}
-	
+
 	if($result!="ok"){
 		print_r($result."\n");
 		print_r(json_encode($payload));
@@ -71,11 +72,11 @@ function postit($channel_name, $payload, $attachments){
 	global $config, $slackCommand;
 
 	return slack_incoming_hook_post_with_attachments(
-		$config['slack']['hook'], 
-		$config['rally']['botname'], 
-		$slackCommand->ChannelName, 
-		$config['rally']['boticon'], 
-		$payload, 
+		$config['slack']['hook'],
+		$config['rally']['botname'],
+		$slackCommand->ChannelName,
+		$config['rally']['boticon'],
+		$payload,
 		$attachments);
 }
 
@@ -169,7 +170,7 @@ function GetDefectPayload($ref)
 		array_push($fields,$firstattachment);
 
 	global $slackCommand;
-	
+
 	$userlink = BuildUserLink($slackCommand->UserName);
 	$user_message = "Ok, {$userlink}, here's the defect you requested.";
 
@@ -265,7 +266,7 @@ function GetRequirementPayload($ref)
 
 		if($blocked)
 			array_push($fields, MakeField("blocked",$blockedreason,true));
-		
+
 		array_push($fields, MakeField("description",$short_description,false));
 
 		if($firstattachment!=null)
@@ -310,6 +311,66 @@ function CallAPI($uri)
 	return $object;
 }
 
+/**
+ * Returns an abstract notion of a story's current state based on a combination
+ * of its ScheduleState and Ready fields and revision history.
+ *
+ * @param object $Story
+ * @param object $lastCronTime
+ *
+ * @return string[] Array containing story's state label and name of the user
+ *                  that updated the story to this state
+ */
+function FetchStoryStateChangeInfo($Story, $lastCronTime)
+{
+	$state = '';
+	$fact_table = array(); //revision messages that must appear/not appear since last cron run to verify state
+
+	switch ($Story->ScheduleState) { //make hypothesis about state based on story's ScheduleState/Ready fields
+
+		case 'Completed':
+			$state = 'acceptance-ready';
+			$fact_table[1] = 'SCHEDULE STATE changed';
+			break;
+
+		case 'In-Progress':
+			if ($Story->Ready) {
+				$state = 'verification-ready';
+				$fact_table[1] = 'READY changed from [false] to [true]';
+
+			} else {
+				$state = 'needs-work';
+				$fact_table[0] = 'SCHEDULE STATE changed'; //array index 0 indicates fact that must not appear
+				$fact_table[1] = 'READY changed from [true] to [false]';
+			}
+			break;
+
+		default:
+			return NULL; //don't report other states
+	}
+
+	$query_url = $Story->RevisionHistory->_ref . '/Revisions?query=(CreationDate+>+' . $lastCronTime . ')&fetch=CreationDate,Description,User';
+	$results = CallAPI($query_url);
+	$results = $results->QueryResult->Results;
+
+	$is_verified = FALSE; //parse latest revision messages to verify state
+	$updated_by = '' //return the name of the user that made the change
+
+	foreach ($results as $Revision) {
+		if (isset($fact_table[0]) && (strpos($Revision->Description, $fact_table[0]) !== FALSE)){
+			return NULL; //stop parsing if the negative fact has appeared
+		}
+		if (strpos($Revision->Description, $fact_table[1]) !== FALSE) { //keep looking for negative fact
+			$is_verified = TRUE;
+			$updated_by = $Revision->User->_refObjectName;
+		}
+	}
+
+	if (!$is_verified) {
+		return NULL; //don't report stories with unconfirmed state changes
+	}
+	return array($state, $updated_by);
+}
 
 function GetProjectID($projectref)
 {
