@@ -55,54 +55,19 @@ function FetchUpdatedRallyArtifacts($since)
 			);
 
 		} elseif ($type == 'User Story') { //track progress of user stories
-			switch ($Artifact->ScheduleState) {
-				case 'Completed':
-					$fact_table = array(1 => 'SCHEDULE STATE changed');
-					$state = 'acceptance-ready';
-					break;
-				case 'In-Progress':
-					if ($Artifact->Ready) {
-						$fact_table = array(1 => 'READY changed from [false] to [true]');
-						$state = 'verification-ready';
-					} else {
-						$fact_table = array(
-							0 => 'SCHEDULE STATE changed',
-							1 => 'READY changed from [true] to [false]'
-						);
-						$state = 'needs-work';
-					}
-					break;
-				default:
-					continue 2; //don't parse other state changes
+
+			$state_info = FetchStoryStateChangeInfo($Artifact, $since); //see rally library file
+			if (is_null($state_info)) {
+				continue; //skip stories that haven't changed state
 			}
 
-			//parse latest revision messages to verify state change
-			$query2_url = $Artifact->RevisionHistory->_ref . '/Revisions?query=(CreationDate+>+' . $since . ')&fetch=CreationDate,Description,User';
-
-			$results2 = CallAPI($query2_url);
-			$results2 = $results2->QueryResult->Results;
-
-			$is_verified = FALSE;
-			foreach ($results2 as $Revision) {
-				if (isset($fact_table[0]) && (strpos($Revision->Description, $fact_table[0]) !== FALSE)){
-					continue 2; //stop parsing if the negative fact has appeared
-				}
-				if (strpos($Revision->Description, $fact_table[1]) !== FALSE) {
-					$is_verified = TRUE;
-					$user = $Revision->User->_refObjectName;
-				}
-			}
-			if (!$is_verified) {
-				continue; //skip artifacts with unconfirmed state change
-			}
-
-			$items[] = array( //report stories that have changed state
+			$items[] = array(
 				'type' => $type,
 				'title' => $Artifact->_refObjectName,
 				'url' => $project_url . $path . basename($Artifact->_ref),
-				'user' => $user,
+				'user' => $state_info[1],
 				'id' => $Artifact->FormattedID,
-				'state' => $state //presence of this key indicates state-change notification
+				'state' => $state_info[0] //presence of this key indicates state-change notification
 			);
 		}
 	}
